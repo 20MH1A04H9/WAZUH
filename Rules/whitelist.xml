@@ -1,0 +1,403 @@
+<!-- ============================= -->
+     <!-- Windows Security Rules -->
+<!-- ============================= -->
+
+
+
+<group name="windows,noise_reduction">
+
+  <rule id="990000" level="0">
+    <if_sid>60642</if_sid>
+    <description>Ignore Software Protection Platform restart scheduling</description>
+  </rule>
+
+
+<rule id="990001" level="0">
+  <if_sid>60608</if_sid>
+  <field name="win.system.severityValue">^INFORMATION$</field>
+  <field name="win.system.providerName">^Windows Error Reporting$</field>
+  <description>Ignore informational Windows Error Reporting events</description>
+</rule>
+
+<rule id="990002" level="0">
+  <if_sid>61104</if_sid>
+  <field name="win.eventdata.param4">^BITS$|^TrustedInstaller$</field>
+  <field name="win.system.severityValue">^INFORMATION$</field>
+  <description>Whitelist normal BITS service startup type changes</description>
+</rule>
+
+<rule id="990003" level="0">
+  <if_sid>60132</if_sid>
+  <field name="win.eventdata.processName">svchost\.exe$</field>
+  <description>Whitelist automatic Windows time synchronization changes</description>
+</rule>
+
+
+  <rule id="990004" level="0">
+    <if_sid>61102</if_sid>
+    <field name="win.system.providerName">^NETLOGON$|^Microsoft-Windows-GroupPolicy$|^Microsoft-Windows-DistributedCOM$|^Microsoft-Windows-TPM-WMI$|^ACPI$|^Disk$|^PrintService$|^User Device Registration$|^DriverFrameworks$|^Kernel-PnP$|^WindowsUpdateClient$|^Microsoft-Windows-WindowsUpdateClient$|^Microsoft-Windows-NDIS$|^Microsoft-Windows-HAL$</field>
+    <description>Downgrade NETLOGON system errors (noise reduction)</description>
+  </rule>
+
+  <rule id="990042" level="0">
+    <if_sid>61110</if_sid>
+    <field name="win.system.providerName">^WudfUsbccidDriver$</field>
+    <description>Downgrade NETLOGON system errors (noise reduction)</description>
+  </rule>
+
+<rule id="990005" level="0">
+  <if_sid>60112</if_sid>
+  <field name="win.eventdata.subjectUserSid">S-1-5-18</field>
+  <field name="win.eventdata.processName">
+    wuaucltcore\.exe|TiWorker\.exe|DismHost\.exe|TrustedInstaller\.exe
+  </field>
+  <description>
+    Downgrade audit policy changes from Windows servicing activity
+  </description>
+</rule>
+
+
+</group>
+
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+       <!-- Whitelisted Rules -->
+<!-- ============================= -->
+
+<group name="windows,sophos,false_positive">
+  <rule id="990006" level="0">
+    <if_sid>60104</if_sid>
+    <field name="win.eventdata.param1">\\Device\\HarddiskVolume3\\Program Files\\Sophos\\Sophos AMSI Protection\\SophosAmsiProvider\.dll$</field>
+    <description>Suppress legitimate Sophos AMSI provider Code Integrity (Event ID 5038)</description>
+  </rule>
+</group>
+
+
+<group name="windows,powershell,whitelist">
+  <rule id="990007" level="0">
+    <if_sid>91816</if_sid>
+    <match>secedit /export /cfg</match>
+    <description>Whitelist: PowerShell script exporting local security policy (ResetLockoutCount check)</description>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<group name="windows,powershell,false_positive">
+  <rule id="990008" level="0">
+    <if_sid>91816</if_sid>
+    <match>secedit /export /cfg</match>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)secedit /export /cfg.*secpol\.cfg</field>
+    <description>Suppress PowerShell secedit security policy queries (known false positive)</description>
+    <options>no_log</options>
+  </rule>
+</group>
+
+
+<group name="windows,sysmon,false_positive">
+  <rule id="990009" level="3">
+    <if_sid>92213</if_sid>
+    <field name="win.eventdata.image">cleanmgr.exe</field>
+    <field name="win.eventdata.targetFilename">DismHost.exe</field>
+    <description>
+      Suppress benign Windows Disk Cleanup activity creating DismHost.exe in Temp directory
+    </description>
+  </rule>
+</group>
+
+<group name="windows,sysmon,false_positive">
+  <rule id="990010" level="0">
+    <if_sid>92910</if_sid>
+    <field name="win.eventdata.sourceImage" type="pcre2">(?i)^C:\\Users\\[^\\]+\\AppData\\Local\\Microsoft\\OneDrive\.exe$</field>
+    <field name="win.eventdata.sourceImage" type="pcre2">(?i)^C:\\Users\\[^\\]+\\AppData\\Local\\Microsoft\\OneDrive\\OneDrive.exe$</field>
+    <field name="win.eventdata.sourceImage" type="pcre2">(?i)^C:\\Users\\[^\\]+\\AppData\\Local\\Microsoft\\OneDrive\\[0-9._]+(_[0-9]+)?\\OneDriveSetup\.exe$</field>
+    <field name="win.eventdata.sourceImage" type="pcre2">(?i)^C:\\Users\\[^\\]+\\AppData\\Local\\Microsoft\\OneDrive\\[0-9._]+(_[0-9]+)?\\OneDrivePatcher\.exe$</field>
+    <field name="win.eventdata.targetImage" type="pcre2">(?i)Explorer\.EXE$</field>
+    <description>Suppress OneDrive accessing Explorer process (known false positive)</description>
+  </rule>
+
+</group>
+
+<group name="windows,sysmon,powershell,false_positive">
+  <rule id="990011" level="0">
+    <if_sid>92213</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)__PSScriptPolicyTest_.*\.(ps1|psm1)$</field>
+    <description>Suppress PowerShell internal execution policy test files</description>
+  </rule>
+</group>
+
+<group name="windows,sysmon,whitelist,onedrive">
+
+  <rule id="990012" level="0">
+    <if_sid>92213</if_sid>
+    <field name="win.eventdata.image">Microsoft\\OneDrive\\.*OneDrivePatcher\.exe</field>
+    <field name="win.eventdata.targetFilename">OneDrive\.App\.exe</field>
+    <description>Whitelisted legitimate Microsoft OneDrive update (OneDrivePatcher creating OneDrive.App.exe)
+    </description>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+
+<group name="windows,sysmon,powershell,false_positive">
+  <rule id="990013" level="0">
+    <if_sid>92212</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)__PSScriptPolicyTest_.*\.(ps1|psm1)$</field>
+    <description>Suppress PowerShell internal execution policy test files</description>
+  </rule>
+</group>
+
+
+<group name="windows,sysmon,powershell,false_positive">
+  <rule id="990014" level="0">
+    <if_sid>92205</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)__PSScriptPolicyTest_.*\.ps1$</field>
+    <description>Suppress PowerShell internal execution policy test files</description>
+  </rule>
+</group>
+
+<group name="sysmon,windows,false_positive">
+  <rule id="990015" level="0">
+    <if_sid>92031</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\\\net1?\.exe$</field>
+    <field name="win.eventdata.currentDirectory" type="pcre2">(?i)^C:\\\\Program Files \(x86\)\\\\ossec-agent\\\\$</field>
+    <description>Suppress Wazuh agent legitimate execution of net.exe/net1.exe user enumeration (false positive account discovery)</description>
+  </rule>
+</group>
+
+<group name="sysmon,windows,false_positive">
+  <rule id="990016" level="0">
+    <if_sid>92052</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\cmd\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bfc\s+/n\b</field>
+    <field name="win.eventdata.currentDirectory" type="pcre2">(?i)^C:\\\\Program Files \(x86\)\\\\ossec-agent\\\\$</field>
+    <description>Suppress Wazuh agent file integrity diff using cmd.exe fc /n</description>
+  </rule>
+</group>
+
+<group name="windows,sysmon,powershell,false_positive">
+  <rule id="990017" level="0">
+    <if_sid>92021</if_sid>
+    <field name="win.eventdata.parentImage">wazuh-agent.exe</field>
+    <match>secedit</match>
+    <description>Suppress PowerShell activity executed by Wazuh agent for security policy checks</description>
+  </rule>
+</group>
+
+
+<group name="windows,sysmon,false_positive,">
+<rule id="990018" level="3">
+<if_sid>92058</if_sid>
+<field name="win.eventdata.parentCommandLine" type="pcre2">(?i)svchost\.exe.*PcaSvc</field>
+<description>Benign sdbinst.exe execution by Program Compatibility Assistant Service</description>
+</rule>
+</group>
+
+<!-- Whitelist legitimate .NET CLR JIT compiler loading by PowerShell -->
+<group name="sysmon,">
+  <rule id="990019" level="0">
+    <if_sid>106104</if_sid>
+    <field name="win.eventdata.imageLoaded" type="pcre2">(?i)C:\\\\Windows\\\\Microsoft\.NET\\\\Framework(64)?\\\\v\d\.\d\.\d+\\\\(clrjit|clr|mscoreei)\.dll</field>
+    <field name="win.eventdata.signatureStatus">Valid</field>
+    <field name="win.eventdata.signature">Microsoft Corporation</field>
+    <description>Legitimate .NET JIT compiler loading - whitelisted</description>
+  </rule>
+</group>
+
+
+
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+<!-- ============================= -->
+             <!-- Crash Erroe -->
+<!-- ============================= -->
+
+<group name="windows,">
+  <!-- Ignore Windows Error Reporting application crash events -->
+  <rule id="990020" level="0">
+    <if_sid>60608</if_sid>
+    <description>Ignore Windows Error Reporting APPCRASH events</description>
+    <options>no_log</options>
+  </rule>
+
+  <!-- OR if you want to ignore only s3browser-helper.exe crashes -->
+  <rule id="990021" level="0">
+    <if_sid>60608</if_sid>
+    <field name="win.eventdata.p1">^s3browser-helper\.exe$</field>
+    <description>Ignore s3browser-helper.exe crash reports</description>
+    <options>no_log</options>
+  </rule>
+
+  <!-- OR if you want to ignore all Event ID 1001 (Windows Error Reporting) -->
+  <rule id="990022" level="0">
+    <if_sid>60600</if_sid>
+    <field name="win.system.eventID">^1001$</field>
+    <description>Ignore all Windows Error Reporting events (Event ID 1001)</description>
+    <options>no_log</options>
+  </rule>
+</group>
+<!-- ============================= -->
+             <!-- End -->
+<!-- ============================= -->
+<!-- ============================= -->
+             <!-- windows Firewall new 4.13 -->
+<!-- ============================= -->
+<group name="windows,firewall,custom">
+ 
+  <!-- Alert when firewall is turned off -->
+<rule id="990023" level="0">
+<if_sid>67001</if_sid>
+<description>CRITICAL: Windows Defender Firewall has been DISABLED!</description>
+<group>windows_firewall,pci_dss_10.6.1,gdpr_IV_35.7.d</group>
+</rule>
+ 
+  <!-- Alert on firewall rule change -->
+<rule id="990024" level="1">
+<if_sid>67001</if_sid>
+<description>Windows Firewall rule has been modified.</description>
+<group>windows_firewall</group>
+</rule>
+ 
+</group>
+
+<group name="windows,sysmon,powershell,false_positive">
+  <rule id="990025" level="0">
+    <if_sid>60009</if_sid>
+    <regex>C:\\Scripts\\Automation\\|C:\\IT-Automation\\|C:\\AdminScripts\\</regex>
+    <description>Ignore legitimate internal automation PowerShell scripts.</description>
+  </rule>
+</group>
+<!-- ============================= -->
+             <!-- End -->
+<!-- ============================= -->
+
+<group name="windows,whitelist,update">
+
+  <rule id="990026" level="0">
+    <if_sid>60112</if_sid>
+    
+    <!-- Event ID 4907 -->
+    <field name="win.system.eventID">4907</field>
+    
+    <!-- Only SYSTEM account -->
+    <field name="win.eventdata.subjectUserSid">S-1-5-18</field>
+    
+    <!-- Windows Update process -->
+    <field name="win.eventdata.processName">C:\\Windows\\UUS\\Packages\\Preview\\amd64\\wuaucltcore.exe</field>
+    
+    <!-- Only WinREAgent / WinSxS path -->
+    <field name="win.eventdata.objectName">C:\\\$WinREAgent\\Scratch\\Mount\\Windows\\WinSxS\\.*</field>
+
+    <description>Whitelisted: Windows Update audit change (Event 4907)</description>
+  </rule>
+
+<rule id="990043" level="5">
+  <if_sid>60154</if_sid>
+  <field name="win.eventdata.SubjectUserSid">^S-1-5-18$</field>
+  <description>Admin group change by SYSTEM (possible automation)</description>
+</rule>
+
+
+</group>
+
+<group name="custom_rules">
+
+  <rule id="990044" level="8">
+    <if_sid>204</if_sid>
+    <description>Agent event queue flooded</description>
+  </rule>
+
+
+
+<rule id="990045" level="0">
+  <if_sid>92151</if_sid>
+
+  <field name="win.eventdata.image">C:\\Windows\\System32\\ServerManager.exe</field>
+  <field name="win.eventdata.originalFileName">System\.Management\.Automation\.dll</field>
+
+  <description>Whitelist: ServerManager loading PowerShell library</description>
+</rule>
+</group>
+
+
+<group name="sysmon,winrm,">
+
+  <rule id="990046" level="0">
+    <if_sid>92110</if_sid>
+
+    <!-- Ignore IPv6 loopback -->
+    <field name="win.eventdata.sourceIp">^0:0:0:0:0:0:0:1$</field>
+    <field name="win.eventdata.destinationIp">^0:0:0:0:0:0:0:1$</field>
+
+    <description>Ignore WinRM loopback (::1 to ::1)</description>
+  </rule>
+
+</group>
+
+<group name="sysmon,sysmon_eid10_detections,windows,">
+
+  <rule id="990047" level="0">
+    <if_sid>92910</if_sid>
+    <field name="win.eventdata.sourceImage">ServiceShell\.exe$</field>
+    <field name="win.eventdata.targetImage">Explorer\.EXE$</field>
+    <description>Whitelist: Dell ServiceShell accessing Explorer (backup-related)</description>
+  </rule>
+
+</group>
+
+<group name="windows,windows_security,policy_changed,">
+
+  <rule id="990048" level="0">
+    <if_sid>60112</if_sid>
+
+    <!-- Dell SupportAssist process -->
+    <field name="win.eventdata.processName">.*DellSupportAssistRemedationService\.exe</field>
+
+    <!-- Only Dell remediation path -->
+    <field name="win.eventdata.objectName">.*\\Dell\\SARemediation\\SystemRepair\\Snapshots\\Backup\\.*\.dll</field>
+
+    <description>Whitelist: Dell SARemediation modifying backup DLL audit settings</description>
+  </rule>
+
+</group>
+
+
+<group name="local,sysmon,windows,">
+
+  <rule id="990049" level="0">
+    <if_sid>92151</if_sid>
+
+    <field name="win.eventdata.image">ServerManager\.exe$</field>
+
+    <field name="win.eventdata.imageLoaded">
+      System\.Management\.Automation(\.ni)?\.dll$
+    </field>
+
+    <description>
+      Ignore legitimate ServerManager PowerShell automation DLL loads
+    </description>
+  </rule>
+
+</group>
+
+
+
+<group name="sonicwall,syslog">
+
+
+<rule id="990050" level="0">
+  <if_sid>100011</if_sid>
+  <match>Google Mail|VoIP-APPS|WhatsApp|Skype|GitHub|Microsoft|AI-APPS|DNS Query|DNS Protocol|HTTP User-Agent|HTTPS Activity|HTTP Proxy|GET Method|POST Method|HEAD Method|BUSINESS-APPS|SOCIAL-NETWORKING|APP-UPDATE|ICMPv4 -- Echo Message|ICMPv4 -- Echo Reply Message|Range Header|Content-Range Header</match>
+  <description>Ignore common HTTP HTTPS application control noise</description>
+</rule>
+
+<rule id="990051" level="0">
+  <if_sid>100011</if_sid>
+  <match>SSL/TLS|TLSv1.0|TLSv1.1|TLSv1.2|TLSv1.3</match>
+  <description>Ignore SSL TLS protocol activity alerts</description>
+</rule>
+
+</group>
