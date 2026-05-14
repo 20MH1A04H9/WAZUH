@@ -1,0 +1,460 @@
+
+<!-- ============================= -->
+    <!-- Brute Force Detection -->
+<!-- ============================= -->
+<group name="bruteforce,loginfailure,">
+<rule id="110101" level="12" frequency="8" timeframe="60">
+<if_matched_sid>60122</if_matched_sid>
+<description>Alert: possbile brute force attempt by $(win.eventdata.targetUserName) from IP: $(win.eventdata.ipAddress)</description>
+<mitre>
+<id>T1110</id>
+</mitre>
+</rule>
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ========================================================= -->
+<!--  UAC Elevation Success - Admin Privileges Granted (4672)  -->
+<!-- ========================================================= -->
+<group name="windows,windows_security,uac,privilege_escalation">
+<rule id="91020" level="7">
+    <if_sid>67028</if_sid>
+    <match>Special privileges assigned to new logon</match>
+    <description>UAC Elevation SUCCESS — Admin privileges were granted (Event ID 4672)</description>
+    <group>uac_success,privilege_escalation,windows_4672</group>
+  </rule>
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+ <!-- Privilege Escalation Attempt -->
+<!-- ============================= -->
+<group name="windows,powershell,">
+
+  <!-- Rule to detect PowerShell launched with elevated token -->
+  <rule id="111012" level="7">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)powershell\.exe</field>
+    <field name="win.eventdata.tokenElevationType">%%1937</field>
+    <description>PowerShell executed with administrative privileges (Elevated Token)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>powershell_admin,windows_security,</group>
+  </rule>
+
+  <!-- Alternative rule checking for high integrity level (admin) -->
+  <rule id="111011" level="7">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)powershell\.exe</field>
+    <field name="win.eventdata.mandatoryLabel">S-1-16-12288</field>
+    <description>PowerShell executed with high integrity level (Administrator)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>powershell_admin,windows_security,</group>
+  </rule>
+
+  <!-- Comprehensive rule combining both conditions -->
+  <rule id="111010" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)powershell\.exe</field>
+    <field name="win.eventdata.tokenElevationType">%%1937</field>
+    <field name="win.eventdata.mandatoryLabel">S-1-16-12288</field>
+    <description>PowerShell launched as Administrator (Full elevated privileges detected)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>powershell_admin,privilege_escalation,windows_security,</group>
+  </rule>
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+<!-- Suspicious USB Device Activity -->
+<!-- ============================= -->
+<group name="windows-usb-detect,">
+<rule id="121000" level="7">
+<if_sid>60227</if_sid>
+<field name="win.system.eventID">^6416$</field>
+<match>USBSTOR\\Disk</match>
+<options>no_full_log</options>
+<description>Windows: A USB device $(win.eventdata.deviceDescription) was connected to $(win.system.computer)</description>
+</rule>
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+       <!-- File Extraction -->
+<!-- ============================= -->
+<group name="file_extraction">
+<rule id="120300" level="5">
+<if_sid>61603</if_sid>
+<!--<if_group>sysmon_event_11</if_group>-->
+<field name="win.eventdata.image" type="pcre2">C:\\\\Program Files\\\\7-Zip\\\\7zG.exe</field>
+<description>file extraction by 7zip</description>
+</rule>
+
+<rule id="120301" level="5">
+<if_sid>61617</if_sid>
+<field name="win.eventdata.image" type="pcre2">(?i)C:\\\\Windows\\\\Explorer.EXE</field>
+<field name="win.eventdata.contents" type="pcre2">\.zip$</field>
+<description>file extraction by default archiver </description>
+</rule>
+
+<rule id="120302" level="0" frequency="10" timeframe="5">
+<if_matched_sid>120301</if_matched_sid>
+<description>supressed alerts </description>
+</rule>
+
+<!--<rule id="110803" level="12">-->
+<!--    <if_sid>60103</if_sid>-->
+<!--    <field name="win.system.eventID">^4663$</field>-->
+<!--    <field name="win.eventdata.objectName" type="pcre2">C:\\\\Windows\\\\Minidump\\\\[\s\S]+|C:\\\\Windows\\\\Minidump</field>-->
+<!--    <field name="win.eventdata.accessMask">^0x1$</field>-->
+<!--    <description>Alert: Attempt was made to access Crash dump at $(win.eventdata.objectName) </description>-->
+<!--</rule>-->
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+       <!-- File Deletion -->
+<!-- ============================= -->
+<!--<group name="file_deletion">-->
+<!--    <rule id="110804" level="10" >-->
+<!--      <if_sid>553</if_sid>-->
+<!--      <description>file deleted</description>-->
+<!--    </rule>-->
+<!--    <rule id="110805" level="10" frequency="5" timeframe="15">-->
+<!--      <if_matched_sid>110804</if_matched_sid>-->
+<!--      <description>High Alert: excesive file deleted </description>-->
+<!--    </rule>-->
+<!--</group>-->
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+ <!-- Suspicious Command Execution -->
+<!-- ============================= -->
+<group name="windows,powershell">
+
+  <rule id="110201" level="8">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.payload" type="pcre2">(?i)CommandInvocation</field>
+    <field name="win.system.message" type="pcre2">(?i)EncodedCommand|FromBase64String|EncodedArguments|-e\b|-enco\b|-en\b</field>
+    <description>Encoded command executed via PowerShell.</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1562.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="110202" level="4">
+    <if_sid>60009</if_sid>
+    <field name="win.system.message" type="pcre2">(?i)blocked by your antivirus software</field>
+    <description>Windows Security blocked malicious command executed via PowerShell.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="110203" level="10">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.payload" type="pcre2">(?i)CommandInvocation</field>
+    <field name="win.system.message" type="pcre2">(?i)Add-Persistence|Find-AVSignature|Get-GPPAutologon|Get-GPPPassword|Get-HttpStatus|Get-Keystrokes|Get-SecurityPackages|Get-TimedScreenshot|Get-VaultCredential|Get-VolumeShadowCopy|Install-SSP|Invoke-CredentialInjection|Invoke-DllInjection|Invoke-Mimikatz|Invoke-NinjaCopy|Invoke-Portscan|Invoke-ReflectivePEInjection|Invoke-ReverseDnsLookup|Invoke-Shellcode|Invoke-TokenManipulation|Invoke-WmiCommand|Mount-VolumeShadowCopy|New-ElevatedPersistenceOption|New-UserPersistenceOption|New-VolumeShadowCopy|Out-CompressedDll|Out-EncodedCommand|Out-EncryptedScript|Out-Minidump|PowerUp|PowerView|Remove-Comments|Remove-VolumeShadowCopy|Set-CriticalProcess|Set-MasterBootRecord</field>
+    <description>Risky CMDLet executed. Possible malicious activity detected.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="110204" level="8">
+    <if_sid>91802</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)mshta.*GetObject|mshta.*new ActiveXObject</field>
+    <description>Mshta used to download a file. Possible malicious activity detected.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="110205" level="5">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.contextInfo" type="pcre2">(?i)ExecutionPolicy bypass|exec bypass</field>
+    <description>PowerShell execution policy set to bypass.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="110206" level="5">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.contextInfo" type="pcre2">(?i)Invoke-WebRequest|IWR.*-url|IWR.*-InFile</field>
+    <description>Invoke Webrequest executed, possible download cradle detected.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+    <!-- ======================================================
+       PowerShell executed by SCCM / System Tasks
+       ====================================================== -->
+  <!-- Examples include: SYSTEM account, SCCM paths, CCM cache -->
+  <rule id="111202" level="0">
+    <if_sid>60009</if_sid>
+    <regex>CCM|C:\\Windows\\CCM|C:\\Windows\\CCMCache|NT AUTHORITY\\SYSTEM|SYSTEM</regex>
+    <description>Ignore known benign SCCM/System PowerShell executions.</description>
+  </rule>
+
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+             <!-- HKeys -->
+<!-- ============================= -->
+
+<group name="local,">
+  <rule id="194100" level="12">
+    <if_sid>92041</if_sid>
+    <field name="win.system.eventID">1</field>
+    <field name="win.eventdata.image">.*\\reg\.exe</field>
+    <field name="win.eventdata.commandLine">(?i)HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run</field>
+    <description>Wazuh: Persistence attempt — reg.exe added/modified a value under HKCU\...\Run</description>
+  </rule>
+</group>
+
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+
+<!-- ============================= -->
+<!-- Overwrite rules -->
+<!-- ============================= -->
+
+<group name="sonicwall,syslog,custom">
+
+  <rule id="100010" level="5" overwrite="yes">
+    <if_sid>4801</if_sid>
+    <description>$(action)</description>
+  </rule>
+ 
+  <rule id="100012" level="5">
+    <if_sid>100010</if_sid>
+    <field name="agent.id">049</field>
+    <description>$(action)</description>
+  </rule>
+
+
+
+  <rule id="100011" level="5">
+    <if_sid>100010</if_sid>
+    <match>Application Control Detection Alert</match>
+    <description>$(action)</description>
+  </rule>
+
+</group>
+
+
+======================== -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+           <!-- Firewall -->
+<!-- ============================= -->
+<group name="windows,windows_firewall,firewall,">
+
+
+<rule id="110401" level="5">
+  <if_sid>67001</if_sid>
+  <field name="win.eventdata.active">1</field>
+  <description>Port $(win.eventdata.localPorts) has been opened with ruleName: $(win.eventdata.ruleName)</description>
+</rule>
+
+<rule id="110402" level="5">
+  <if_sid>67001</if_sid>
+  <field name="win.eventdata.active">0</field>
+  <description>Port $(win.eventdata.localPorts) has been closed with ruleName: $(win.eventdata.ruleName)</description>
+</rule>
+
+<rule id="110404" level="6" >
+  <if_sid>100101</if_sid>
+  <field name="win.eventdata.modifyingApplication" type="pcre2">WmiPrvSE\.exe$</field>
+  <description>Alert: Port $(win.eventdata.localPorts) opened via PowerShell (ruleName: $(win.eventdata.ruleName))</description>
+</rule>
+
+<rule id="110405" level="6" >
+  <if_sid>100102</if_sid>
+  <field name="win.eventdata.modifyingApplication" type="pcre2">WmiPrvSE\.exe$</field>
+  <description>Alert: Port $(win.eventdata.localPorts) closed via PowerShell (ruleName: $(win.eventdata.ruleName))</description>
+</rule>
+
+<!-- <rule id="110406" level="10" >
+  <if_sid>67001</if_sid>
+  <list field="win.eventdata.localPorts" lookup="match_key">etc/lists/suspicious_ports</list>
+  <description>Alert: suspcious Port $(win.eventdata.localPorts) has been opened with ruleName: $(win.eventdata.ruleName)</description>
+  <group>suspicous_ports,</group>
+</rule> -->
+
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+<!-- Application Installation -->
+<!-- ============================= -->
+<!--<group name="syscollector,installations">-->
+<!--  <rule id="110301" level="7">-->
+<!--    <if_sid>221</if_sid>-->
+<!--    <field name="operation_type">INSERTED</field>-->
+<!--    <field name="program.name" type="pcre2">[\s\S]+</field>-->
+<!--    <description>Application $(program.name) installed to the system</description>-->
+<!--  </rule>-->
+<!--</group>-->
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+<!-- Credential Dumping Detection -->
+<!-- ============================= -->
+<group name="windows,mimikatz,">
+  <!-- Rule for suspicious process creation (Event ID 4688) -->
+  <rule id="110601" level="12">
+    <if_sid>67027</if_sid> <!-- Wazuh rule for Event ID 4688 -->
+    <field name="win.eventdata.newProcessName">mimikatz.exe</field>
+    <description>Mimikatz process creation detected</description>
+    <mitre>
+      <id>T1003</id> <!-- MITRE ATT&CK: OS Credential Dumping -->
+    </mitre>
+  </rule>
+
+  <rule id="110602" level="12">
+  <if_sid>60107</if_sid>
+  <field name="win.eventdata.processName" type="pcre2">\\\\mimikatz.exe</field>
+  <description>Possible memory dump detected</description>
+  </rule>
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+  <!-- System Crash Dump Access -->
+<!-- ============================= -->
+<group name="file_extraction">
+<rule id="110803" level="12">
+<if_sid>60103</if_sid>
+<field name="win.system.eventID">^4663$</field>
+<field name="win.eventdata.objectName" type="pcre2">C:\\\\Windows\\\\Minidump\\\\[\s\S]+|C:\\\\Windows\\\\Minidump</field>
+<field name="win.eventdata.accessMask">^0x1$</field>
+<description>Alert: Attempt was made to access Crash dump at $(win.eventdata.objectName) </description>
+</rule>
+</group>
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+
+<!-- ============================= -->
+       <!-- DNS -->
+<!-- ============================= -->
+
+
+<group name="DNS">
+  <rule id="192000" level="5">
+    <if_sid>61650</if_sid>
+    <field name="win.eventdata.queryName">drive.google.com</field>
+    <description>DNS logs</description>
+  </rule>
+</group>
+
+
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+
+<!-- ============================= -->
+       <!-- Malware_detection -->
+<!-- ============================= -->
+<group name="syscheck,malware_detection,">
+  <!-- Rule for file added to monitored directories -->
+  <rule id="130200" level="7">
+    <if_sid>554</if_sid>
+    <field name="file">\.exe$|\.dll$|\.bat$|\.ps1$|\.vbs$</field>
+    <description>File added to monitored directory with suspicious extension.</description>
+    <group>pci_dss_11.5,nist_800_53_SI.7,</group>
+  </rule>
+  <!-- Rule for VirusTotal detecting malicious file -->
+  <rule id="130201" level="12">
+    <if_sid>87105</if_sid>
+    <field name="virustotal.malicious">1</field>
+    <description>VirusTotal: Malicious file detected in monitored directory.</description>
+    <group>pci_dss_11.4,nist_800_53_SI.3,</group>
+  </rule>
+</group>
+
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+<!-- ============================= -->
+      <!-- Active-response -->
+<!-- ============================= -->
+
+<group name="local,malware,active-response,">
+  <rule id="100004" level="7">
+    <if_sid>657</if_sid>
+    <match>Successfully removed threat</match>
+    <description>$(parameters.program): Successfully removed threat $(parameters.alert.syscheck.path) whose MD5 hash appears in a malware blacklist.</description>
+  </rule>
+
+
+  <rule id="100005" level="7">
+    <if_sid>657</if_sid>
+    <match>Error removing threat</match>
+    <description>$(parameters.program): Error removing threat $(parameters.alert.syscheck.path) whose MD5 hash appears in a malware blacklist.</description>
+  </rule>
+</group>
+
+<!-- ============================= -->
+             <!-- END  990045 used-->
+<!-- ============================= -->
+
+<!-- ============================= -->
+<!--kaspersky_malwar-->
+<!-- ============================= -->
+<group name="kaspersky_malware_detection">
+
+  <rule id="320002" level="15">
+    <if_sid>60011</if_sid>
+
+    <field name="win.system.providerName">^avp$</field>
+    <field name="win.system.eventID">^302$</field>
+
+    <field name="win.eventdata.data" type="pcre2">
+      Malicious object detected|Virus|Trojan
+    </field>
+
+    <description>Alert: Kaspersky detected malware on endpoint $(win.system.computer)</description>
+  </rule>
+
+</group>
+<!-- ============================= -->
+<!--kaspersky_malwar-->
+<!-- ============================= -->
