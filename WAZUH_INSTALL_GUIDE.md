@@ -347,7 +347,7 @@ sudo systemctl restart wazuh-indexer
 |---|---|
 | 8 GB | `-Xms2g -Xmx2g` |
 | 16 GB | `-Xms4g -Xmx4g` |
-| **24 GB** *(Viswa setup)* | **`-Xms6g -Xmx6g`** |
+| **24 GB** *(MY setup)* | **`-Xms6g -Xmx6g`** |
 | 32 GB | `-Xms8g -Xmx8g` |
 | 64 GB | `-Xms16g -Xmx16g` |
 
