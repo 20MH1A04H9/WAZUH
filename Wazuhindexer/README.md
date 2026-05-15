@@ -1,0 +1,1 @@
+curl -fsSL https://raw.githubusercontent.com/20MH1A04H9/WAZUH/refs/heads/main/Wazuhindexer/wazuh-auto-config.sh -o ~/wazuh-auto-config.sh && bash ~/wazuh-auto-config.sh
