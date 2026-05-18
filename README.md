@@ -1,4 +1,4 @@
-
+![Repo Views](https://komarev.com/ghpvc/?username=20MH1A04H9&repo=WAZUH&label=Repository+Views) ![Stars](https://img.shields.io/github/stars/20MH1A04H9/WAZUH?style=social) ![Forks](https://img.shields.io/github/forks/20MH1A04H9/WAZUH?style=social)
 
 <p align="center">
   <img src="https://wazuh.com/uploads/2022/05/WAZUH.png" width="220" alt="Wazuh Logo">
@@ -13,6 +13,7 @@ WAZUH — Open Source Security Platform
 <p align="center">
 Unified XDR and SIEM protection for endpoints and cloud workloads
 </p>
+
 
 <p align="center">
   <img src="https://visitor-badge.laobi.icu/badge?page_id=20MH1A04H9.WAZUH" alt="Visitors"/>
