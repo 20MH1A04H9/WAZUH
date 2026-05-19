@@ -1,169 +1,79 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
 :: =====================================================
-:: AUTO-ELEVATION (MANDATORY)
+:: AUTO ELEVATION
 :: =====================================================
 net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Requesting administrator privileges...
-    powershell -Command "Start-Process cmd.exe -ArgumentList '/c \"%~f0\"' -Verb RunAs"
+if %errorLevel% neq 0 (
+    echo Requesting Administrator privileges...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
 echo Running as Administrator...
+echo.
 
 :: =====================================================
 :: VARIABLES
 :: =====================================================
-set "ServiceName=WazuhSvc"
-set "InstallPath=C:\Program Files (x86)\ossec-agent"
-set "Version=4.14.4"
-set "WazuhManager=wazuh.isstechnologies.in"
-set "RegistrationPassword=Viswa@12345."
-set "AgentName=%COMPUTERNAME%"
-set "MsiPath=%TEMP%\wazuh-agent.msi"
-set "LogPath=%TEMP%\wazuh-agent-install.log"
+set "MSI=%TEMP%\wazuh-agent-4.14.4-1.msi"
+set "MANAGER=wazuh.isstechnologies.in"
+set "PASSWORD=Viswa@12345."
 
 :: =====================================================
-:: PART 1: REMOVE EXISTING AGENT
+:: STOP OLD WAZUH SERVICE
 :: =====================================================
-echo.
-echo === Removing existing Wazuh Agent ===
+echo Stopping old Wazuh service...
 
-:: Stop service
-sc query "%ServiceName%" >nul 2>&1
-if %errorlevel% equ 0 (
-    net stop "%ServiceName%" /y >nul 2>&1
-    sc stop "%ServiceName%" >nul 2>&1
-)
+net stop WazuhSvc >nul 2>&1
+sc stop WazuhSvc >nul 2>&1
 
-:: Kill processes
-taskkill /F /IM wazuh-agent.exe >nul 2>&1
-taskkill /F /IM ossec-agent.exe >nul 2>&1
-taskkill /F /IM wazuh-modulesd.exe >nul 2>&1
-taskkill /F /IM wazuh-logcollector.exe >nul 2>&1
-taskkill /F /IM wazuh-syscheckd.exe >nul 2>&1
-taskkill /F /IM wazuh-agentd.exe >nul 2>&1
-
-:: Uninstall via registry (32-bit)
-for /f "tokens=*" %%A in ('reg query "HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" /s /f "Wazuh" /k 2^>nul ^| findstr "HKEY"') do (
-    for /f "tokens=2*" %%B in ('reg query "%%A" /v UninstallString 2^>nul ^| findstr "UninstallString"') do (
-        echo Uninstalling: %%C
-        %%C /quiet /norestart >nul 2>&1
-    )
-)
-
-:: Uninstall via registry (64-bit)
-for /f "tokens=*" %%A in ('reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall" /s /f "Wazuh" /k 2^>nul ^| findstr "HKEY"') do (
-    for /f "tokens=2*" %%B in ('reg query "%%A" /v UninstallString 2^>nul ^| findstr "UninstallString"') do (
-        echo Uninstalling: %%C
-        %%C /quiet /norestart >nul 2>&1
-    )
-)
-
-:: Wait for uninstall to finish
-timeout /t 5 /nobreak >nul
-
-:: Delete leftover install directory
-if exist "%InstallPath%" (
-    rd /s /q "%InstallPath%"
-    echo Removed leftover directory: %InstallPath%
-)
-
-:: Delete stuck service
-sc query "%ServiceName%" >nul 2>&1
-if %errorlevel% equ 0 (
-    sc delete "%ServiceName%" >nul 2>&1
-    echo Removed stuck service: %ServiceName%
-)
+timeout /t 3 >nul
 
 :: =====================================================
-:: PART 2: INSTALL WAZUH AGENT
+:: DOWNLOAD MSI
 :: =====================================================
-echo.
-echo === Installing Wazuh Agent v%Version% ===
+echo Downloading Wazuh Agent 4.14.4...
 
-powershell -Command "Invoke-WebRequest -Uri 'https://packages.wazuh.com/4.x/windows/wazuh-agent-%Version%-1.msi' -OutFile '%MsiPath%'"
+powershell -ExecutionPolicy Bypass -Command ^
+"Invoke-WebRequest -Uri 'https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.4-1.msi' -OutFile '%MSI%'"
 
-if not exist "%MsiPath%" (
-    echo ERROR: Failed to download Wazuh MSI. Check your internet connection.
-    exit /b 1
-)
-
-msiexec.exe /i "%MsiPath%" /q /l*v "%LogPath%" ^
-    WAZUH_MANAGER="%WazuhManager%" ^
-    WAZUH_REGISTRATION_PASSWORD="%RegistrationPassword%" ^
-    WAZUH_AGENT_NAME="%AgentName%"
-
-:: Verify installation
-sc query "%ServiceName%" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ERROR: Installation failed. Check log: %LogPath%
-    exit /b 1
-)
-
-echo Wazuh agent installed successfully.
-
-:: =====================================================
-:: PART 3: OSSEC.CONF CLEANUP
-:: =====================================================
-set "ConfigPath=%InstallPath%\ossec.conf"
-
-if exist "%ConfigPath%" (
+if not exist "%MSI%" (
     echo.
-    echo === Cleaning OSSEC configuration ===
-
-    :: Backup config
-    for /f "tokens=2 delims==" %%D in ('wmic os get localdatetime /value') do set "dt=%%D"
-    set "Timestamp=!dt:~0,8!_!dt:~8,6!"
-    copy /y "%ConfigPath%" "%ConfigPath%.bak.!Timestamp!" >nul
-    echo Backup created: %ConfigPath%.bak.!Timestamp!
-
-    :: Use PowerShell to do the regex cleanup (batch cannot do multiline regex)
-    powershell -Command ^
-        "$c = Get-Content '%ConfigPath%' -Raw;" ^
-        "$c = $c -replace '(?s)\s*<!--\s*Default files to be monitored\.\s*-->', '';" ^
-        "$c = $c -replace '(?s)\s*<directories.*?</directories>', '';" ^
-        "$c = $c -replace '(?s)\s*<windows_registry.*?</windows_registry>', '';" ^
-        "$c = $c -replace '(?s)\s*<registry_ignore.*?</registry_ignore>', '';" ^
-        "$c = $c -replace '\n{3,}', \"`n`n\";" ^
-        "Set-Content -Path '%ConfigPath%' -Value $c -NoNewline"
-
-    echo OSSEC configuration cleaned.
+    echo ERROR: Failed to download MSI.
+    pause
+    exit /b 1
 )
 
 :: =====================================================
-:: PART 4: ENABLE SCA + REMOTE COMMANDS
+:: INSTALL WAZUH AGENT
 :: =====================================================
 echo.
-echo === Enabling SCA and remote commands ===
+echo Installing Wazuh Agent...
 
-set "InternalOptions=%InstallPath%\local_internal_options.conf"
+msiexec.exe /i "%MSI%" /q ^
+WAZUH_MANAGER="%MANAGER%" ^
+WAZUH_REGISTRATION_PASSWORD="%PASSWORD%"
 
-if not exist "%InternalOptions%" (
-    type nul > "%InternalOptions%"
+if %errorLevel% neq 0 (
+    echo.
+    echo ERROR: Installation failed.
+    pause
+    exit /b 1
 )
 
-:: Remove existing entries then re-add cleanly via PowerShell
-powershell -Command ^
-    "$lines = Get-Content '%InternalOptions%' -ErrorAction SilentlyContinue |" ^
-    "Where-Object { $_ -notmatch '^wazuh_command\.remote_commands=1' -and $_ -notmatch '^sca\.remote_commands=1' };" ^
-    "$lines += 'wazuh_command.remote_commands=1';" ^
-    "$lines += 'sca.remote_commands=1';" ^
-    "Set-Content -Path '%InternalOptions%' -Value $lines"
-
-echo SCA and remote commands enabled.
-
 :: =====================================================
-:: PART 5: RESTART AGENT
+:: START SERVICE
 :: =====================================================
 echo.
-echo === Starting Wazuh Agent service ===
+echo Starting Wazuh service...
 
-net start "%ServiceName%"
-sc query "%ServiceName%"
+net start WazuhSvc
 
 echo.
-echo === Wazuh Agent removal + installation completed successfully ===
+echo ============================================
+echo Wazuh Agent Installed Successfully
+echo ============================================
+
 pause
