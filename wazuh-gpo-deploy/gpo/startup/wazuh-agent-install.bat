@@ -19,7 +19,7 @@ echo.
 :: =====================================================
 set "MSI=%TEMP%\wazuh-agent-4.14.4-1.msi"
 set "MANAGER=wazuh.isstechnologies.in"
-set "PASSWORD=Viswa@12345."
+set "PASSWORD=Viswa@34234."
 set "ServiceName=WazuhSvc"
 set "InstallPath=C:\Program Files (x86)\ossec-agent"
 set "InternalOptions=%InstallPath%\local_internal_options.conf"
