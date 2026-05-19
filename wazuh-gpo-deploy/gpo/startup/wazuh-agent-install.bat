@@ -20,14 +20,17 @@ echo.
 set "MSI=%TEMP%\wazuh-agent-4.14.4-1.msi"
 set "MANAGER=wazuh.isstechnologies.in"
 set "PASSWORD=Viswa@12345."
+set "ServiceName=WazuhSvc"
+set "InstallPath=C:\Program Files (x86)\ossec-agent"
+set "InternalOptions=%InstallPath%\local_internal_options.conf"
 
 :: =====================================================
 :: STOP OLD WAZUH SERVICE
 :: =====================================================
 echo Stopping old Wazuh service...
 
-net stop WazuhSvc >nul 2>&1
-sc stop WazuhSvc >nul 2>&1
+net stop %ServiceName% >nul 2>&1
+sc stop %ServiceName% >nul 2>&1
 
 timeout /t 3 >nul
 
@@ -63,13 +66,35 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
+echo Installation completed successfully.
+
 :: =====================================================
-:: START SERVICE
+:: ENABLE REMOTE COMMANDS
 :: =====================================================
 echo.
-echo Starting Wazuh service...
+:: echo Enabling remote commands...
 
-net start WazuhSvc
+if not exist "%InternalOptions%" (
+    type nul > "%InternalOptions%"
+)
+
+findstr /v /c:"wazuh_command.remote_commands=1" "%InternalOptions%" > "%TEMP%\wtmp.txt"
+move /y "%TEMP%\wtmp.txt" "%InternalOptions%" >nul
+
+echo wazuh_command.remote_commands=1>> "%InternalOptions%"
+echo sca.remote_commands=1>> "%InternalOptions%"
+
+:: echo Remote commands enabled.
+
+:: =====================================================
+:: RESTART SERVICE
+:: =====================================================
+echo.
+echo Restarting Wazuh service...
+
+net stop "%ServiceName%" >nul 2>&1
+timeout /t 3 >nul
+net start "%ServiceName%"
 
 echo.
 echo ============================================
