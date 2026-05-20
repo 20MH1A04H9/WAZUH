@@ -17,31 +17,19 @@ Data Prepper
       ↓
 OpenSearch / External Destinations
 ```
-
----
-
-# Requirements
-
-| Component | Version |
-|---|---|
-| Wazuh | 4.x |
-| OpenSearch | 2.x |
-| Data Prepper | 2.x |
-| Ubuntu | 22.04 / 24.04 |
-
 ---
 
 # Install Java
 
 ```bash
 sudo apt update
-sudo apt install openjdk-17-jdk -y
+sudo apt install -y openjdk-21-jre-headless
 ```
 
 Verify Java:
 
 ```bash
-java -version
+java -version 2>&1
 ```
 
 ---
@@ -49,129 +37,131 @@ java -version
 # Download Data Prepper
 
 ```bash
-wget https://github.com/opensearch-project/data-prepper/releases/latest/download/data-prepper.tar.gz
+wget https://artifacts.opensearch.org/data-prepper/2.15.1/opensearch-data-prepper-jdk-2.15.1-linux-x64.tar.gz -P /opt/
+ls -lh /opt/opensearch-data-prepper*.tar.gz
+sudo tar -xzf /opt/opensearch-data-prepper-jdk-2.15.1-linux-x64.tar.gz -C /opt/ && sudo ln -s /opt/opensearch-data-prepper-jdk-2.15.1-linux-x64 /opt/data-prepper
 ```
 
-Extract:
+Create the config directory and system user::
 
 ```bash
-tar -xzf data-prepper.tar.gz
-cd data-prepper-*
+sudo mkdir -p /opt/data-prepper/config && sudo useradd -r -s /bin/false -d /opt/data-prepper data-prepper
+
+sudo tee /opt/data-prepper/config/data-prepper-config.yaml << 'EOF'
+ssl: false
+serverPort: 4900
+circuit_breakers:
+  heap:
+    usage: 6gb
+EOF
+
 ```
 
 ---
 
 # Create Pipeline Configuration
 
-Create the pipeline file:
+Create the pipelines config:
 
 ```bash
-nano pipelines.yaml
-```
-
-Add the following configuration:
-
-```yaml
-wazuh-pipeline:
+sudo tee /opt/data-prepper/config/pipelines.yaml << 'EOF'
+entry-pipeline:
+  delay: "100"
   source:
-    opensearch:
-      hosts:
-        - https://YOUR-WAZUH-INDEXER:9200
-      username: admin
-      password: admin
-      index: wazuh-alerts-*
-      insecure: true
+    otel_trace_source:
+      ssl: false
+      port: 21890
+  buffer:
+    bounded_blocking:
+      buffer_size: 1024
+      batch_size: 256
+  sink:
+    - pipeline:
+        name: "raw-pipeline"
+    - pipeline:
+        name: "service-map-pipeline"
 
+raw-pipeline:
+  source:
+    pipeline:
+      name: "entry-pipeline"
+  buffer:
+    bounded_blocking:
+      buffer_size: 1024
+      batch_size: 256
   processor:
-    - grok:
-        match:
-          log: [ "%{GREEDYDATA:message}" ]
-
-    - date:
-        from_time_received: true
-        destination: "@timestamp"
-
+    - otel_traces:
   sink:
     - opensearch:
-        hosts:
-          - https://YOUR-OPENSEARCH:9200
-        username: admin
-        password: admin
-        index: wazuh-processed-alerts
+        hosts: ["https://localhost:9200"]
+        username: "admin"
+        password: "Viswa@123."
         insecure: true
+        index_type: trace-analytics-raw
+
+service-map-pipeline:
+  delay: "100"
+  source:
+    pipeline:
+      name: "entry-pipeline"
+  buffer:
+    bounded_blocking:
+      buffer_size: 1024
+      batch_size: 256
+  processor:
+    - otel_apm_service_map:
+  sink:
+    - opensearch:
+        hosts: ["https://localhost:9200"]
+        username: "admin"
+        password: "Viswa@123."
+        insecure: true
+        index_type: trace-analytics-service-map
+EOF
 ```
 
----
-
-# Configure Data Prepper
-
-Edit:
+Set ownership and create the log directory:
 
 ```bash
-nano config/data-prepper-config.yaml
-```
-
-Add:
-
-```yaml
-ssl: false
-
-serverPort: 4900
-```
-
----
-
-# Run Data Prepper
-
-```bash
-./bin/data-prepper pipelines.yaml
+sudo chown -R data-prepper:data-prepper /opt/opensearch-data-prepper-jdk-2.15.1-linux-x64 /opt/data-prepper && sudo mkdir -p /opt/data-prepper/log/data-prepper && sudo chown -R data-prepper:data-prepper /opt/data-prepper/log
 ```
 
 ---
 
 # Configure Systemd Service
 
-Create service file:
+Create the systemd service file:
 
 ```bash
-sudo nano /etc/systemd/system/data-prepper.service
-```
-
-Add:
-
-```ini
+sudo tee /etc/systemd/system/data-prepper.service << 'EOF'
 [Unit]
-Description=Data Prepper
-After=network.target
+Description=OpenSearch Data Prepper
+After=network.target wazuh-indexer.service
 
 [Service]
 Type=simple
-User=root
+User=data-prepper
+Group=data-prepper
 WorkingDirectory=/opt/data-prepper
-
-ExecStart=/opt/data-prepper/bin/data-prepper pipelines.yaml
-
-Restart=always
+ExecStart=/opt/data-prepper/bin/data-prepper /opt/data-prepper/config/pipelines.yaml /opt/data-prepper/config/data-prepper-config.yaml
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+Environment="JAVA_OPTS=-Xms512m -Xmx1g"
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
 ---
 
-# Enable and Start Service
+# Enable and Start Service and  Check status
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable data-prepper
-sudo systemctl start data-prepper
+sudo systemctl daemon-reload && sudo systemctl enable data-prepper && sudo systemctl start data-prepper && sleep 8 && sudo systemctl status data-prepper
 ```
 
-Check status:
-
-```bash
-sudo systemctl status data-prepper
-```
 
 ---
 
@@ -189,71 +179,17 @@ sudo ufw allow 9200/tcp
 ```bash
 journalctl -u data-prepper -f
 ```
+---
+
+Data Prepper is running. The WARNs about TLS are expected — we intentionally set ssl: false for the lab. The key lines confirm it's working:
+Initialized OpenSearch sink ✅
+Started otel_trace_source ✅
 
 ---
 
-# Advanced Enrichment Pipeline
-
-```yaml
-wazuh-enrichment:
-  source:
-    opensearch:
-      hosts:
-        - https://localhost:9200
-      username: admin
-      password: admin
-      index: wazuh-alerts-*
-
-  processor:
-    - add_entries:
-        entries:
-          environment: production
-          soc: ISS-SOC
-
-    - delete_entries:
-        with_keys:
-          - agent.ip
-
-  sink:
-    - stdout:
-
-    - opensearch:
-        hosts:
-          - https://localhost:9200
-        username: admin
-        password: admin
-        index: wazuh-enriched
-```
 
 ---
 
-# Troubleshooting
-
-## Validate Pipelines
-
-```bash
-./bin/data-prepper validate-pipelines pipelines.yaml
-```
-
-## Check Running Ports
-
-```bash
-ss -tulnp | grep 4900
-```
-
-## Restart Service
-
-```bash
-sudo systemctl restart data-prepper
-```
-
-## Stop Service
-
-```bash
-sudo systemctl stop data-prepper
-```
-
----
 
 # Security Recommendations
 
