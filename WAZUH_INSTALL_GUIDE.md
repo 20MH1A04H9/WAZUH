@@ -74,6 +74,8 @@ sudo swapoff -a
 sudo nano /etc/fstab
 # Comment out any swap line:
 # /swapfile none swap sw 0 0
+or
+sudo fallocate -l 8G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ### Increase file descriptors
