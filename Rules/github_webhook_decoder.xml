@@ -1,0 +1,8 @@
+<decoder name="github_webhook">
+  <prematch>{"integration": "github"</prematch>
+</decoder>
+
+<decoder name="github_webhook_event">
+  <parent>github_webhook</parent>
+  <plugin_decoder>JSON_Decoder</plugin_decoder>
+</decoder>
