@@ -1,0 +1,61 @@
+policy:
+  id: "antivirus_security_policy"
+  file: "antivirus_sca.yml"
+  name: "Antivirus Security Compliance Policy"
+  description: "Checks if Antivirus is installed, enabled, and not disabled"
+  references:
+    - "CIS Control 10"
+    - "NIST SI-3"
+
+checks:
+
+  # ✅ 1. Antivirus Installed (Strict)
+  - id: 30001
+    title: "Antivirus must be installed"
+    description: "Checks if a known antivirus product is present"
+    remediation: "Install or verify antivirus solution"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction SilentlyContinue | Select-Object -ExpandProperty displayName" -> r:Windows Defender|McAfee|Kaspersky|Sophos|CrowdStrike'
+      - 'c:powershell.exe -command "Get-MpComputerStatus | Select-Object -ExpandProperty AMServiceEnabled" -> r:True'
+
+  # ✅ 2. Antivirus Enabled (Active Protection)
+  - id: 30002
+    title: "Antivirus must be enabled"
+    description: "Checks if antivirus is actively protecting the system"
+    remediation: "Enable antivirus and real-time protection"
+    condition: any
+    rules:
+      # Defender check
+      - 'c:powershell.exe -command "(Get-MpComputerStatus).AntivirusEnabled" -> r:True'
+
+      # Defender real-time protection
+      - 'c:powershell.exe -command "(Get-MpComputerStatus).RealTimeProtectionEnabled" -> r:True'
+
+      # Other AV products (best-effort)
+      - 'c:powershell.exe -command "Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction SilentlyContinue | ForEach-Object { $_.productState }" -> r:397568'
+
+  # 🚨 3. Antivirus MUST NOT be disabled
+  - id: 30003
+    title: "Antivirus must not be disabled"
+    description: "Fails if antivirus is disabled or inactive"
+    remediation: "Immediately investigate and re-enable antivirus"
+    condition: none
+    rules:
+      # Defender disabled
+      - 'c:powershell.exe -command "(Get-MpComputerStatus).AntivirusEnabled" -> r:False'
+
+      # Real-time protection disabled
+      - 'c:powershell.exe -command "(Get-MpComputerStatus).RealTimeProtectionEnabled" -> r:False'
+
+      # Other AV disabled state
+      - 'c:powershell.exe -command "Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction SilentlyContinue | ForEach-Object { $_.productState }" -> r:393216'
+      
+  # ✅ 4. Approved Antivirus must be installed
+  - id: 30004
+    title: "Approved Antivirus must be installed"
+    description: "Checks if only approved AV vendors (Defender or Kaspersky) are present"
+    remediation: "Install approved antivirus (Windows Defender or Kaspersky Endpoint Security)"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct -ErrorAction SilentlyContinue | Select-Object -ExpandProperty displayName" -> r:Windows Defender|Kaspersky Endpoint Security'
