@@ -1,0 +1,17 @@
+policy:
+  id: "bitlocker_policy"
+  file: "bitlocker_sca.yml"
+  name: "BitLocker Compliance Policy"
+  description: "Ensure BitLocker is enabled on system drive"
+  references:
+    - "NIST SC-28"
+    - "CIS Windows"
+
+checks:
+  - id: 10001
+    title: "BitLocker must be enabled on C: drive"
+    description: "Checks if BitLocker ProtectionStatus is ON"
+    remediation: "Enable BitLocker on system drive"
+    condition: all
+    rules:
+      - 'c:powershell.exe -command "(Get-BitLockerVolume -MountPoint C:).ProtectionStatus" -> r:^On$'
