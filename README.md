@@ -154,57 +154,59 @@ Maps all detections to the MITRE ATT&CK framework
 
 ```
 WAZUH/
-├── 📂 Data Prepper/          # OpenSearch Data Prepper pipeline configs
-├── 📂 Rules/                
-├── 📂 Wazuhindexer/          
-├── 📂 plugins/               # Dashboard plugins (v4.14.5)
-├── 📂 scripts/              
-├── 📂 ssl/                  
-├── 📂 wazuh-gpo-deploy/     
-├── 📂 wazuh_multi_tenant/    
-├── 📄 WAZUH_INSTALL_GUIDE.md 
-├── 📄 SECURITY.md           
-└── 📄 README.md             
+│
+├── 📂 Data Prepper/              
+│   └── README.md                 # APM Stack & OpenTelemetry integration guide
+│
+├── 📂 GitHub Webhook/            
+│   └── README.md                 # Webhook setup & event forwarding guide
+│
+├── 📂 Rules/                     # Custom Wazuh detection rules & decoders
+│   └── README.md                 
+│
+├── 📂 Wazuhindexer/              
+│   └── README.md                 # Groq LLaMA integration with Wazuh
+│
+├── 📂 agents/                    
+│   ├── README.md                 # Agent overview & quick reference
+│   ├── linux/
+│   │   ├── install-linux-agent.sh
+│   │   └── README.md
+│   ├── windows/
+│   │   ├── install-windows-agent.ps1
+│   │   └── README.md
+│   └── macos/
+│       ├── install-macos-agent.sh
+│       └── README.md
+│
+├── 📂 backup/                    
+│   └── retention_cleanup.sh      # Index retention & cleanup automation
+│
+├── 📂 plugins/                   
+│   ├── README.md                 
+│   └── ssl-setup.sh             
+│
+├── 📂 sca/                       # Security Configuration Assessment
+│   └── README.md                 # SCA policies for Windows & Linux agents
+│
+├── 📂 scripts/                  
+│   └── README.md               
+│
+├── 📂 ssl/                      
+│   └── README.md                
+│
+├── 📂 wazuh-gpo-deploy/         
+│   └── README.md                 # Mass deploy agents via Group Policy Object
+│
+├── 📂 wazuh_multi_tenant/       
+│   └── README.md                 # Multi-tenant architecture & configuration
+│
+├── 📄 .gitignore                 
+├── 📄 LICENSE
+├── 📄 README.md                
+├── 📄 SECURITY.md        
+└── 📄 WAZUH_INSTALL_GUIDE.md       
 ```
-
----
-
-## 📂 Module Details
-
-### 🔗 Data Prepper
-OpenSearch Data Prepper pipeline configurations for ingesting and processing Wazuh logs into OpenSearch/Elasticsearch clusters.
-
-### 📜 Rules
-Custom Wazuh detection rules for advanced threat detection beyond the default ruleset. Includes rules for:
-- Custom application monitoring
-- Suspicious behavior detection
-- Compliance-related alerts
-
-### 🗄️ Wazuh Indexer
-Setup guides and configuration files for the Wazuh Indexer (OpenSearch-based). Covers index management, shard tuning, and retention policies.
-
-### 🔌 Plugins
-Dashboard plugin files for Wazuh **v4.14.5**, including installation steps and compatibility notes.
-
-### ⚙️ Scripts
-Automation scripts for:
-- Custom rules installation
-- Agent enrollment
-- Service management
-- Refactored Wazuh configuration workflows
-
-### 🔒 SSL
-SSL/TLS certificate generation and configuration for:
-- Wazuh Manager ↔ Agent encryption
-- Dashboard HTTPS setup
-- Certificate rotation procedures
-
-### 🖥️ Wazuh GPO Deploy
-Group Policy Object (GPO) scripts and guides for deploying Wazuh agents across Windows domain environments silently at scale.
-
-### 🏢 Wazuh Multi-Tenant
-Complete lab setup guide for running Wazuh in a **multi-tenant** architecture — ideal for MSSPs and organizations managing multiple isolated environments.
-
 ---
 
 ## 🔗 Resources
