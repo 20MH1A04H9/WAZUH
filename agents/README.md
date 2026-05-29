@@ -21,6 +21,16 @@ powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.c
 > ✅ This downloads and silently installs the Wazuh agent — no manual steps needed.
 
 
+
+## ⚡ One-Line Remote Install (VISWA-AI)
+> Open **PowerShell as Administrator** and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/20MH1A04H9/WAZUH/refs/heads/main/agents/%F0%9F%AA%9F%20windows/aiwazuh.socexperts.space.ps1 | iex"
+```
+
+> ✅ This downloads and silently installs the Wazuh agent — no manual steps needed.
+
 <div align="center">
 
 🛡️ **MY VISWA-Wazuh** · `wazuh.isstechnologies.in`
