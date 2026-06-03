@@ -1,0 +1,70 @@
+policy:
+  id: "win_applications_policy"
+  file: "win_applications_sca.yml"
+  name: "Unauthorized Applications Compliance Policy"
+  description: "Checks for presence of unauthorized or threat-relevant applications including remote access tools, tunneling utilities, and PUA"
+  references:
+    - "PCI DSS 10.6.1"
+    - "NIST CM-7"
+    - "CIS Control 2"
+
+checks:
+  - id: 40001
+    title: "TeamViewer must not be installed or running"
+    description: "Detects TeamViewer installation or active process which may indicate unauthorized remote access"
+    remediation: "Uninstall TeamViewer if not business-approved. Block via GPO or application whitelisting."
+    condition: none
+    rules:
+      - 'r:HKEY_LOCAL_MACHINE\SOFTWARE\TeamViewer'
+      - 'r:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\TeamViewer'
+      - 'r:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TeamViewer'
+      - 'd:\Program Files\TeamViewer -> TeamViewer.exe'
+      - 'd:\Program Files (x86)\TeamViewer -> TeamViewer.exe'
+      - 'p:r:TeamViewer.exe'
+      - 'p:r:TeamViewer_Service.exe'
+
+  - id: 40002
+    title: "AnyDesk must not be installed or running"
+    description: "Detects AnyDesk installation or active process which may indicate unauthorized remote access or attacker persistence"
+    remediation: "Uninstall AnyDesk if not business-approved. Block via GPO or application whitelisting."
+    condition: none
+    rules:
+      - 'r:HKEY_LOCAL_MACHINE\SOFTWARE\AnyDesk'
+      - 'r:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\AnyDesk'
+      - 'r:HKEY_CURRENT_USER\SOFTWARE\AnyDesk'
+      - 'd:\Program Files\AnyDesk -> AnyDesk.exe'
+      - 'p:r:AnyDesk.exe'
+
+  - id: 40003
+    title: "RustDesk must not be installed or running"
+    description: "Detects RustDesk remote access tool which is commonly abused by attackers as a TeamViewer alternative"
+    remediation: "Uninstall RustDesk if not business-approved. Block via GPO or application whitelisting."
+    condition: none
+    rules:
+      - 'r:HKEY_LOCAL_MACHINE\SOFTWARE\RustDesk'
+      - 'r:HKEY_CURRENT_USER\SOFTWARE\RustDesk'
+      - 'r:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RustDesk'
+      - 'd:\Program Files\RustDesk -> rustdesk.exe'
+      - 'd:\Program Files (x86)\RustDesk -> rustdesk.exe'
+      - 'p:r:rustdesk.exe'
+
+  - id: 40004
+    title: "UltraViewer must not be installed or running"
+    description: "Detects UltraViewer remote access tool frequently used in tech support scams and unauthorized access"
+    remediation: "Uninstall UltraViewer if not business-approved. Block via GPO or application whitelisting."
+    condition: none
+    rules:
+      - 'r:HKEY_LOCAL_MACHINE\SOFTWARE\UltraViewer'
+      - 'r:HKEY_CURRENT_USER\SOFTWARE\UltraViewer'
+      - 'r:HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\UltraViewer'
+      - 'd:\Program Files\UltraViewer -> UltraViewer_Desktop.exe'
+      - 'd:\Program Files (x86)\UltraViewer -> UltraViewer_Desktop.exe'
+      - 'p:r:UltraViewer_Desktop.exe'
+
+  - id: 40005
+    title: "Windows Built-in RDP must not be exposed without approval"
+    description: "Detects if Remote Desktop is enabled via registry which may expose the system to brute force or lateral movement"
+    remediation: "Disable RDP if not required. If required, enforce NLA and restrict via firewall."
+    condition: none
+    rules:
+      - 'r:HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server -> fDenyTSConnections -> 0'
