@@ -1,0 +1,50 @@
+policy:
+  id: "powershell_security_policy"
+  file: "powershell_sca.yml"
+  name: "PowerShell Security Compliance Policy"
+  description: "Checks if PowerShell security controls are properly configured including script block logging, transcription, and constrained language mode"
+  references:
+    - "NIST AC-17"
+    - "CIS Control 8"
+    - "MITRE ATT&CK T1059.001"
+
+checks:
+  - id: 50001
+    title: "PowerShell Script Block Logging must be enabled"
+    description: "Script block logging records all PowerShell script blocks executed, critical for detecting obfuscated and malicious scripts"
+    remediation: "Run: reg add HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ScriptBlockLogging /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f"
+    condition: all
+    rules:
+      - 'c:reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging -> r:0x1'
+
+  - id: 50002
+    title: "PowerShell Module Logging must be enabled"
+    description: "Module logging records pipeline execution details for all PowerShell modules"
+    remediation: "Run: reg add HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ModuleLogging /v EnableModuleLogging /t REG_DWORD /d 1 /f"
+    condition: all
+    rules:
+      - 'c:reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging -> r:0x1'
+
+  - id: 50003
+    title: "PowerShell Transcription must be enabled"
+    description: "Transcription creates a record of all PowerShell input and output for forensic analysis"
+    remediation: "Run: reg add HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\Transcription /v EnableTranscripting /t REG_DWORD /d 1 /f"
+    condition: all
+    rules:
+      - 'c:reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription" /v EnableTranscripting -> r:0x1'
+
+  - id: 50004
+    title: "PowerShell v2 must be disabled"
+    description: "PowerShell v2 lacks security controls like AMSI and script block logging and is abused to bypass defenses"
+    remediation: "Disable via: Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root"
+    condition: none
+    rules:
+      - 'c:powershell.exe -command "Get-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root | Select-Object -ExpandProperty State" -> r:Enabled'
+
+  - id: 50005
+    title: "PowerShell Execution Policy must be restricted"
+    description: "Unrestricted or Bypass execution policy allows unsigned scripts to run freely"
+    remediation: "Set execution policy to AllSigned or RemoteSigned via GPO or Set-ExecutionPolicy"
+    condition: none
+    rules:
+      - 'c:reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell" /v ExecutionPolicy -> r:Unrestricted|Bypass'
