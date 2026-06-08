@@ -19,7 +19,7 @@ Unified XDR and SIEM protection for endpoints and cloud workloads
   <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-informational" alt="Platform"/>
   <img src="https://img.shields.io/badge/Type-XDR%20%2B%20SIEM-critical" alt="Type"/>
   <img src="https://img.shields.io/badge/Status-Active-success" alt="Status"/>
-  <img src="https://img.shields.io/badge/Version-4.14-purple" alt="Version"/>
+  <img src="https://img.shields.io/badge/Version-4.14.5-purple" alt="Version"/>
 </p>
 
 ---
