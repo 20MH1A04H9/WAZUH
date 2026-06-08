@@ -150,63 +150,82 @@ Maps all detections to the MITRE ATT&CK framework
 
 ---
 
-## 📁 Repository Structure
+## 🏛️ Architecture
+ 
+### Core Stack
+ 
+```
+                    ┌─────────────────────────────────────────┐
+                    │           WAZUH SERVER                  │
+                    │                                         │
+                    │  ┌─────────────┐  ┌─────────────────┐   │
+                    │  │   Wazuh     │  │    Wazuh        │   │
+                    │  │  Manager    │  │   Indexer       │   │
+                    │  │             │  │  (OpenSearch)   │   │
+                    │  └──────┬──────┘  └────────┬────────┘   │
+                    │         │                  │            │
+                    │  ┌──────▼──────────────────▼────────┐   │
+                    │  │         Wazuh Dashboard           │  │
+                    │  │        (HTTPS port 443)           │  │
+                    │  └───────────────────────────────────┘  │
+                    └─────────────────────────────────────────┘
+                                       ▲
+              ┌─────────────┬──────────┴────────┬─────────────┐
+              │             │                   │             │
+    ┌─────────┴───┐ ┌───────┴──────┐ ┌─────────┴───┐ ┌───────┴──────┐
+    │   Windows   │ │    Linux     │ │   Network   │ │    Cloud     │
+    │  Endpoints  │ │   Servers    │ │   Devices   │ │  (AWS/Azure) │
+    │             │ │              │ │             │ │              │
+    │ Wazuh Agent │ │ Wazuh Agent  │ │   rsyslog   │ │ AWS Module   │
+    └─────────────┘ └──────────────┘ └─────────────┘ └──────────────┘
+```
+ 
+---
+ 
+### Windows Enterprise Endpoint Stack
+ 
+```
+Windows Server / Endpoint
+│
+├── Wazuh Agent
+│   └── Security Events ──────────────────────────► Wazuh Manager
+│       ├── Windows Event Logs (Security/System/App)
+│       ├── File Integrity Monitoring (FIM)
+│       └── Vulnerability Assessment
+│
+├── Grafana Alloy
+│   └── Metrics ──────────────────────────────────► Prometheus
+│       ├── CPU / RAM / Disk / Network
+│       └── Windows Services Status
+│
+└── Fluent Bit
+    ├── Windows Application Logs ───────────────────► Loki
+                                                        │
+                                               ┌────────▼────────┐
+                                               │     Grafana     │
+                                               │   Dashboards    │
+                                               └─────────────────┘
+```
+ 
+---
+ 
+### Network Device Log Ingestion
+ 
+```
+Network Devices
+├── FortiGate Firewall  ─┐
+├── SonicWall Firewall  ─┤── UDP/TCP 514 ──► rsyslog (Ubuntu)
+├── Switches / Routers  ─┘                        │
+                                                  │
+                                    /var/log/{device}/firewall.log
+                                                  │
+                                                  ▼
+                                           Wazuh Agent
+                                                  │
+                                                  ▼
+                                           Wazuh Manager
+```
 
-```
-WAZUH/
-│
-├── 📂 Data Prepper/              
-│   └── README.md                 # APM Stack & OpenTelemetry integration guide
-│
-├── 📂 GitHub Webhook/            
-│   └── README.md                 # Webhook setup & event forwarding guide
-│
-├── 📂 Rules/                     # Custom Wazuh detection rules & decoders
-│   └── README.md                 
-│
-├── 📂 Wazuhindexer/              
-│   └── README.md                 # Groq LLaMA integration with Wazuh
-│
-├── 📂 agents/                    
-│   ├── README.md                 # Agent overview & quick reference
-│   ├── linux/
-│   │   ├── install-linux-agent.sh
-│   │   └── README.md
-│   ├── windows/
-│   │   ├── install-windows-agent.ps1
-│   │   └── README.md
-│   └── macos/
-│       ├── install-macos-agent.sh
-│       └── README.md
-│
-├── 📂 backup/                    
-│   └── retention_cleanup.sh      # Index retention & cleanup automation
-│
-├── 📂 plugins/                   
-│   ├── README.md                 
-│   └── ssl-setup.sh             
-│
-├── 📂 sca/                       # Security Configuration Assessment
-│   └── README.md                 # SCA policies for Windows & Linux agents
-│
-├── 📂 scripts/                  
-│   └── README.md               
-│
-├── 📂 ssl/                      
-│   └── README.md                
-│
-├── 📂 wazuh-gpo-deploy/         
-│   └── README.md                 # Mass deploy agents via Group Policy Object
-│
-├── 📂 wazuh_multi_tenant/       
-│   └── README.md                 # Multi-tenant architecture & configuration
-│
-├── 📄 .gitignore                 
-├── 📄 LICENSE
-├── 📄 README.md                
-├── 📄 SECURITY.md        
-└── 📄 WAZUH_INSTALL_GUIDE.md       
-```
 ---
 
 ## 🔗 Resources
@@ -233,6 +252,5 @@ Licensed under the **GNU General Public License v3.0** — see the [LICENSE](htt
 </p>
 
 <p align="center">
-  Made with ❤️ for Cybersecurity —
   <a href="https://github.com/20MH1A04H9/WAZUH">github.com/20MH1A04H9/WAZUH</a>
 </p>
