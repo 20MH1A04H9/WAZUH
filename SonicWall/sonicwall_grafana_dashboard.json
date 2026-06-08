@@ -1,0 +1,580 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_LOKI",
+      "label": "Loki",
+      "description": "Loki datasource",
+      "type": "datasource",
+      "pluginId": "loki",
+      "pluginName": "Loki"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
+    { "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
+    { "type": "panel", "id": "logs", "name": "Logs", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "piechart", "name": "Pie chart", "version": "" },
+    { "type": "panel", "id": "table", "name": "Table", "version": "" }
+  ],
+  "description": "SonicWall Firewall Log Analysis Dashboard",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "🔥 SonicWall Overview",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Total Events",
+      "type": "stat",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum(count_over_time({job=\"sonicwall\"}[$__range]))",
+        "legendFormat": "Total",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Connections Opened",
+      "type": "stat",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum(count_over_time({job=\"sonicwall\"} |= \"Connection Opened\" [$__range]))",
+        "legendFormat": "Opened",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Connections Closed",
+      "type": "stat",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum(count_over_time({job=\"sonicwall\"} |= \"Connection Closed\" [$__range]))",
+        "legendFormat": "Closed",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Dropped / Blocked",
+      "type": "stat",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum(count_over_time({job=\"sonicwall\"} |~ \"[Dd]rop|[Bb]lock|[Dd]eny\" [$__range]))",
+        "legendFormat": "Blocked",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "DNS Events",
+      "type": "stat",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum(count_over_time({job=\"sonicwall\"} |= \"dns\" [$__range]))",
+        "legendFormat": "DNS",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "HTTPS Events",
+      "type": "stat",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum(count_over_time({job=\"sonicwall\"} |= \"https\" [$__range]))",
+        "legendFormat": "HTTPS",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "📈 Traffic Timeline",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "title": "Connection Events Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\"} |= \"Connection Opened\" [$__interval]))",
+          "legendFormat": "Opened",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\"} |= \"Connection Closed\" [$__interval]))",
+          "legendFormat": "Closed",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\"} |~ \"[Dd]rop|[Bb]lock\" [$__interval]))",
+          "legendFormat": "Dropped/Blocked",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\"}[$__interval]))",
+          "legendFormat": "All Events",
+          "refId": "D"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "📊 Protocol & Traffic Analysis",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } } }
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 15 },
+      "id": 20,
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "pie",
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Traffic by Protocol",
+      "type": "piechart",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (proto) (count_over_time({job=\"sonicwall\"}[$__range]))",
+        "legendFormat": "{{proto}}",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } } }
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 15 },
+      "id": 21,
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "donut",
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Traffic by Message Type",
+      "type": "piechart",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (msg) (count_over_time({job=\"sonicwall\"}[$__range]))",
+        "legendFormat": "{{msg}}",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } } }
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 15 },
+      "id": 22,
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "pie",
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Traffic by Severity (pri)",
+      "type": "piechart",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (severity) (count_over_time({job=\"sonicwall\"}[$__range]))",
+        "legendFormat": "{{severity}}",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 103,
+      "title": "🔍 Top Talkers",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 100 }, { "color": "red", "value": 1000 }] },
+          "custom": { "align": "auto", "displayMode": "color-background" }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 25 },
+      "id": 30,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Value" }] },
+      "title": "Top Source IPs",
+      "type": "table",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (src_ip) (count_over_time({job=\"sonicwall\"} | regexp `src=(?P<src_ip>[0-9.]+):[0-9]+` [$__range]))",
+        "legendFormat": "{{src_ip}}",
+        "refId": "A",
+        "instant": true
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 100 }, { "color": "red", "value": 1000 }] },
+          "custom": { "align": "auto", "displayMode": "color-background" }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 25 },
+      "id": 31,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Value" }] },
+      "title": "Top Destination IPs",
+      "type": "table",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (dst_ip) (count_over_time({job=\"sonicwall\"} | regexp `dst=(?P<dst_ip>[0-9.]+):[0-9]+` [$__range]))",
+        "legendFormat": "{{dst_ip}}",
+        "refId": "A",
+        "instant": true
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 500 }] },
+          "custom": { "align": "auto", "displayMode": "color-background" }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 35 },
+      "id": 32,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Value" }] },
+      "title": "Top Rules Triggered",
+      "type": "table",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (rule) (count_over_time({job=\"sonicwall\"}[$__range]))",
+        "legendFormat": "{{rule}}",
+        "refId": "A",
+        "instant": true
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 50 }, { "color": "red", "value": 500 }] },
+          "custom": { "align": "auto", "displayMode": "color-background" }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 35 },
+      "id": 33,
+      "options": { "footer": { "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Value" }] },
+      "title": "Top Applications",
+      "type": "table",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "sum by (appname) (count_over_time({job=\"sonicwall\"}[$__range]))",
+        "legendFormat": "{{appname}}",
+        "refId": "A",
+        "instant": true
+      }]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
+      "id": 104,
+      "title": "🚨 Security Events",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 46 },
+      "id": 40,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "title": "Security Events Timeline",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\"} |~ \"[Dd]rop|[Bb]lock|[Dd]eny\" [$__interval]))",
+          "legendFormat": "Blocked Traffic",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\"} |~ \"[Ii]ntrusion|[Aa]ttack|[Mm]alware|[Vv]irus\" [$__interval]))",
+          "legendFormat": "Intrusion/Attack",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "expr": "sum(rate({job=\"sonicwall\", pri=\"1\"}[$__interval])) + sum(rate({job=\"sonicwall\", pri=\"2\"}[$__interval]))",
+          "legendFormat": "High Priority (pri 1-2)",
+          "refId": "C"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+      "id": 105,
+      "title": "📋 Live Log Stream",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 55 },
+      "id": 50,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "title": "All SonicWall Logs",
+      "type": "logs",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "{job=\"sonicwall\"}",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 67 },
+      "id": 51,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "title": "Blocked / Dropped Traffic",
+      "type": "logs",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "{job=\"sonicwall\"} |~ \"[Dd]rop|[Bb]lock|[Dd]eny\"",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 67 },
+      "id": 52,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "title": "High Priority Events (pri=1,2,3)",
+      "type": "logs",
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "expr": "{job=\"sonicwall\"} |~ \" pri=[123] \"",
+        "refId": "A"
+      }]
+    }
+
+  ],
+  "refresh": "30s",
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": ["sonicwall", "firewall", "security", "loki"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "definition": "label_values({job=\"sonicwall\"}, proto)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "proto",
+        "options": [],
+        "query": "label_values({job=\"sonicwall\"}, proto)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "label": "Protocol"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "definition": "label_values({job=\"sonicwall\"}, msg)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "msg",
+        "options": [],
+        "query": "label_values({job=\"sonicwall\"}, msg)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "label": "Message Type"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "definition": "label_values({job=\"sonicwall\"}, severity)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "severity",
+        "options": [],
+        "query": "label_values({job=\"sonicwall\"}, severity)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "label": "Severity"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "definition": "label_values({job=\"sonicwall\"}, rule)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "rule",
+        "options": [],
+        "query": "label_values({job=\"sonicwall\"}, rule)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "label": "Rule"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "SonicWall Firewall Dashboard",
+  "uid": "sonicwall-firewall-001",
+  "version": 1
+}
