@@ -339,30 +339,23 @@ Replace the entire content with the following:
 ```
 [SERVICE]
     Flush        5
-    Log_Level    debug
+    Log_Level    info
+    Parsers_File parsers.conf
 
 [INPUT]
-    Name         tail
-    Path         C:\Program Files (x86)\ossec-agent\ossec.log
-    Tag          wazuh
-    Read_from_Head true
-
-[INPUT]
-    Name         tail
-    Path         C:\Program Files\Fortinet\FortiClient\logs\trace\*.log
-    Tag          forticlient
-    Read_from_Head true
-
-[OUTPUT]
-    Name         stdout
-    Match        *
+    Name              tail
+    Path              C:\Program Files (x86)\ossec-agent\ossec.log
+    Tag               wazuh
+    Read_from_Head    true
+    Refresh_Interval  5
+    Skip_Long_Lines   On
 
 [OUTPUT]
     Name         loki
-    Match        *
-    Host         <SERVERIP>
+    Match        wazuh
+    Host         20.80.106.31
     Port         3100
-    Labels       job=windows,hostname=${COMPUTERNAME}
+    Labels       job=windows,hostname=${COMPUTERNAME},service_name=wazuh
 
 ```
 
