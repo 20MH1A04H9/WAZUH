@@ -1,270 +1,253 @@
-# Wazuh Agent Deployment via Active Directory GPO
+# Wazuh Agent GPO Deployment
 
-Automated, enterprise-scale Wazuh agent rollout to Windows endpoints using Group Policy Objects — no manual installs, no per-machine SSH, no agent management overhead.
-
----
-
-## Overview
-
-This project automates Wazuh agent deployment across a Windows AD environment using GPO startup scripts. Rather than installing agents endpoint-by-endpoint, a single BAT file is distributed via Group Policy and executes at machine startup under SYSTEM context — handling old agent removal, fresh installation, and config hardening in one pass.
-
-**What it does:**
-- Removes any existing Wazuh agent cleanly (services, binaries, folders)
-- Installs the Wazuh agent silently via MSI
-- Replaces the default `ossec.conf` syscheck block to remove registry and FIM noise
-- Enforces `local_internal_options.conf` settings for remote command execution
-- Targets only managed endpoints via AD Security Group filtering — DC and SIEM servers are never touched
+Automated Wazuh Agent v4.14.5 deployment to Windows endpoints via Active Directory Group Policy Objects (GPO). No internet access required on endpoints — MSI is pre-staged in SYSVOL.
 
 ---
 
 ## Environment
 
-| Component | Detail |
-|---|---|
-| Domain Controller OS | Windows Server 2019 |
-| AD Roles | AD DS, DNS |
-| Wazuh Server | Separate Ubuntu host |
-| Target endpoints | Windows workstations in OU `SV` |
-| GPO tool | `gpmc.msc` |
+| Parameter | Value |
+|-----------|-------|
+| Domain | `viswa.local` |
+| DC Hostname | `WIN-IQ934P80NUM.viswa.local` |
+| DC IP | `10.2.0.121` |
+| Endpoint OU | `OU=Wazuh,DC=viswa,DC=local` |
+| Wazuh Manager | `aiwazuh.socexperts.space` |
+| Wazuh Version | `4.14.5` |
+| SYSVOL Scripts Path | `C:\Windows\SYSVOL\sysvol\viswa.local\scripts` |
+
+---
+
+## Architecture
+
+```
+AD GPO (Startup Script)
+        │
+        ▼
+wazuh-agent-install.bat   ← runs as SYSTEM on every endpoint boot
+        │
+        ├── Copies agent.ps1 + wazuh-agent.msi from SYSVOL to %TEMP%
+        │
+        └── Runs agent.ps1
+                │
+                ├── [1/4] Removes existing Wazuh Agent (if any)
+                ├── [2/4] Verifies MSI exists in %TEMP%
+                ├── [3/4] Installs MSI silently with manager config
+                ├── [4/4] Cleans ossec.conf + enables SCA/remote commands
+                └── Starts WazuhSvc (auto)
+```
+
+---
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `wazuh-agent-install.bat` | GPO startup script — copies files and launches PS1 |
+| `agent.ps1` | PowerShell install script — installs, configures, starts Wazuh agent |
+| `wazuh-agent-4.14.5-1.msi` | Wazuh Agent MSI *(not in repo — stage manually in SYSVOL)* |
 
 ---
 
 ## Prerequisites
 
-- Domain Admin or equivalent privileges
-- Wazuh MSI installer accessible from endpoints (network share or embedded in script)
-- GPMC installed on management machine
-- WMI and remote management firewall rules open on endpoints (for remote `gpupdate` — optional)
+### 1. Download Wazuh MSI
 
----
-
-## Step-by-Step Deployment
-
-### 1. Create an OU for Managed Endpoints
-
-Open **Active Directory Users and Computers** (`dsa.msc`) and create an OU:
-
-```
-SV
-```
-
-Move your target endpoints (e.g., `KIRANPC`, `AXUIS-1`) into this OU.
-
-> ⚠️ Do **not** leave endpoints in the default `Computers` container. GPO targeting is messy there and you will hit unexpected scope issues.
-
----
-
-### 2. Create a Security Group
-
-Create a new **Security Group**:
-
-```
-Wazuh-Agents
-```
-
-Add only managed client computers as members.
-
-> ⚠️ **Never add:**
-> - Domain Controller
-> - Wazuh Server
-> - Any SIEM/logging infrastructure
->
-> If your DC ends up in this group, it **will** reboot during deployment. Ask me how I know.
-
----
-
-### 3. Create and Link the GPO
-
-Open **Group Policy Management Console** (`gpmc.msc`):
-
-1. Create a new GPO: `Wazuh – Agent Installation`
-2. Link it to the `SV` OU
-
----
-
-### 4. Configure Security Filtering
-
-In the GPO **Scope** tab:
-
-- **Remove:** `Authenticated Users`
-- **Add:** `Wazuh-Agents`
-
-This ensures the policy only applies to machines explicitly added to the security group.
-
----
-
-### 5. Add the Startup Script
-
-Navigate inside the GPO editor:
-
-```
-Computer Configuration
-  → Policies
-    → Windows Settings
-      → Scripts (Startup/Shutdown)
-        → Startup
-```
-
-1. Click **Add → Browse**
-2. Copy `wazuh-install.bat` into the scripts folder that opens
-3. Select **only the filename** — `wazuh-install.bat`
-
-> ⚠️ Do **not** enter a UNC path like `\\server\share\wazuh-install.bat`. GPO startup scripts must reference the file by name only, relative to the GPO's scripts directory. Using a UNC path is one of the most common reasons the script silently does nothing.
-
----
-
-### 6. The BAT File
-
-The script runs under `SYSTEM` context at machine startup. It must be self-contained.
-
-```bat
-@echo off
-
-:: ─────────────────────────────────────────────
-:: STEP 1: Remove existing Wazuh agent
-:: ─────────────────────────────────────────────
-net stop WazuhSvc >nul 2>&1
-sc delete WazuhSvc >nul 2>&1
-
-wmic product where "name like 'Wazuh%%'" call uninstall /nointeractive >nul 2>&1
-
-rd /s /q "C:\Program Files (x86)\ossec-agent" >nul 2>&1
-rd /s /q "C:\Program Files\ossec-agent" >nul 2>&1
-
-timeout /t 5 /nobreak >nul
-
-:: ─────────────────────────────────────────────
-:: STEP 2: Install new agent silently
-:: ─────────────────────────────────────────────
-msiexec /i "\\YOUR-SERVER\share\wazuh-agent.msi" /qn WAZUH_MANAGER="YOUR-WAZUH-IP" WAZUH_REGISTRATION_SERVER="YOUR-WAZUH-IP" >nul 2>&1
-
-timeout /t 15 /nobreak >nul
-
-:: ─────────────────────────────────────────────
-:: STEP 3: Replace syscheck block in ossec.conf
-:: ─────────────────────────────────────────────
-set CONF="C:\Program Files (x86)\ossec-agent\ossec.conf"
-
-powershell -Command "$c = Get-Content %CONF% -Raw; $c = $c -replace '(?s)<syscheck>.*?</syscheck>', '<syscheck><disabled>no</disabled><frequency>43200</frequency></syscheck>'; Set-Content %CONF% $c"
-
-:: ─────────────────────────────────────────────
-:: STEP 4: Enable remote commands
-:: ─────────────────────────────────────────────
-set INTCONF="C:\Program Files (x86)\ossec-agent\local_internal_options.conf"
-echo wazuh_command.remote_commands=1 >> %INTCONF%
-echo sca.remote_commands=1 >> %INTCONF%
-
-:: ─────────────────────────────────────────────
-:: STEP 5: Start agent
-:: ─────────────────────────────────────────────
-net start WazuhSvc >nul 2>&1
-```
-
-> ⚠️ **Critical:** All PowerShell called from a BAT file in GPO/SYSTEM context **must be single-line**. Do not use multiline PowerShell with `^` continuation inside quoted strings. CMD, SYSTEM context, and the PowerShell host all parse line continuation differently — what works interactively will silently fail under GPO.
-
----
-
-### 7. The syscheck Block
-
-The BAT replaces the default syscheck block with a minimal config that disables registry monitoring and default FIM paths:
-
-```xml
-<syscheck>
-  <disabled>no</disabled>
-  <frequency>43200</frequency>
-</syscheck>
-```
-
-> The reason this does a **full block replacement** rather than regex line deletion: removing specific lines with regex at enterprise scale is unreliable. One malformed match leaves stale config behind. Replacing the entire block is idempotent and predictable.
-
----
-
-### 8. Force Policy Update (Optional)
-
-If you don't want to wait for the next reboot cycle, push a GPUpdate to all group members from your admin machine:
+Download on the DC (or any machine with internet):
 
 ```powershell
-Get-ADGroupMember "Wazuh-Agents" |
-Where-Object {
-    $_.objectClass -eq "computer" -and
-    $_.Name -ne $env:COMPUTERNAME
-} |
-ForEach-Object {
-    Invoke-GPUpdate -Computer $_.Name -Force
-}
+Invoke-WebRequest `
+  -Uri "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.5-1.msi" `
+  -OutFile "C:\Windows\SYSVOL\sysvol\viswa.local\scripts\wazuh-agent-4.14.5-1.msi"
 ```
 
-> Requires WMI and remote management firewall rules to be open on target machines. If this fails silently, check firewall — don't assume GPO isn't linked.
-
----
-
-### 9. Reboot Endpoints
-
-Startup scripts only execute on reboot. Force a restart across all group members:
-
-```powershell
-Get-ADGroupMember "Wazuh-Agents" |
-Where-Object {
-    $_.objectClass -eq "computer" -and
-    $_.Name -ne $env:COMPUTERNAME
-} |
-ForEach-Object {
-    Restart-Computer -ComputerName $_.Name -Force
-}
-```
-
----
-
-## Verification
-
-### Confirm GPO Applied
-
-On any target endpoint, run:
+### 2. Copy All Files to SYSVOL
 
 ```cmd
-gpresult /r
+copy wazuh-agent-install.bat "C:\Windows\SYSVOL\sysvol\viswa.local\scripts\"
+copy agent.ps1               "C:\Windows\SYSVOL\sysvol\viswa.local\scripts\"
 ```
 
-Under **COMPUTER SETTINGS → Applied Group Policy Objects**, you must see:
+### 3. Set SYSVOL Permissions
+
+```cmd
+icacls "C:\Windows\SYSVOL\sysvol\viswa.local\scripts" /grant "Domain Computers:(RX)" /T
+```
+
+Verify all files are present:
+
+```cmd
+dir "C:\Windows\SYSVOL\sysvol\viswa.local\scripts\"
+```
+
+Expected output:
+```
+wazuh-agent-install.bat
+agent.ps1
+wazuh-agent-4.14.5-1.msi
+```
+
+---
+
+## Step 1 — Create GPO
+
+Open Group Policy Management Console on DC:
 
 ```
-Wazuh – Agent Installation
+Win + R → gpmc.msc
 ```
 
-If it's missing, the GPO is either not linked to the correct OU, the machine is not in `Wazuh-Agents`, or the machine hasn't rebooted since the policy was created.
+1. Expand **Forest → Domains → viswa.local**
+2. Right-click **Wazuh** OU → **Create a GPO in this domain and Link it here**
+3. Name it: `Wazuh-Agent-Deploy`
+4. Click **OK**
 
-### Confirm Registry Monitoring Removed
+---
+
+## Step 2 — Add Startup Script to GPO
+
+1. Right-click `Wazuh-Agent-Deploy` → **Edit**
+2. Navigate to:
+```
+Computer Configuration
+  → Windows Settings
+    → Scripts (Startup/Shutdown)
+      → Startup
+```
+3. Click **Add** → **Browse**
+4. Navigate to `\\viswa.local\SYSVOL\viswa.local\scripts\`
+5. Select `wazuh-agent-install.bat` → **Open** → **OK** → **OK**
+
+---
+
+## Step 3 — Move Computers to Wazuh OU
+
+Move each endpoint computer account to the `Wazuh` OU:
 
 ```powershell
-Select-String -Path "C:\Program Files (x86)\ossec-agent\ossec.conf" -Pattern "windows_registry|directories|registry_ignore"
+Move-ADComputer -Identity "COMPUTERNAME" -TargetPath "OU=Wazuh,DC=viswa,DC=local"
 ```
 
-Expected: **no output**. Any match means the syscheck replacement didn't run cleanly.
+Or drag and drop in **AD Users and Computers**.
+
+---
+
+## Step 4 — Enable Firewall Rules on Endpoints
+
+Run on each endpoint for remote management access:
+
+```cmd
+netsh advfirewall firewall add rule name="Allow ICMPv4" protocol=icmpv4:8,any dir=in action=allow
+winrm quickconfig
+netsh advfirewall firewall add rule name="WinRM" protocol=TCP dir=in localport=5985 action=allow
+```
+
+Enable WinRM trusted hosts on DC:
+
+```powershell
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
+```
+
+---
+
+## Step 5 — Deploy
+
+Force GPO update on DC:
+
+```cmd
+gpupdate /force
+```
+
+Reboot endpoint to trigger startup script:
+
+```cmd
+shutdown /m \\<ENDPOINT_IP> /r /f /t 0
+```
+
+---
+
+## Step 6 — Verify
+
+### Check GPO Applied (from DC)
+
+```cmd
+gpresult /S <ENDPOINT_IP> /R /SCOPE COMPUTER
+```
+
+Look for `Wazuh-Agent-Deploy` under **Applied Group Policy Objects**.
+
+### Check Install Log (on endpoint)
+
+```cmd
+type C:\wazuh-gpo-install.log
+```
+
+Expected output:
+```
+[DATE TIME] Starting Wazuh Agent GPO deployment on ENDPOINT
+[DATE TIME] Copying files from SYSVOL...
+[DATE TIME] Files copied successfully
+[DATE TIME] Running agent.ps1...
+[DATE TIME] Wazuh Agent installed successfully on ENDPOINT
+```
+###  Run as Administrator on ENDPOINT:
+Right-click CMD → Run as Administrator, then:
+
+```
+cmd /c "\\WIN-IQ934P80NUM\SYSVOL\viswa.local\scripts\wazuh-agent-install.bat
+```
+
+Or run directly as admin:
+``` 
+powershell -ExecutionPolicy Bypass -Command "Start-Process cmd -ArgumentList '/c \\WIN-IQ934P80NUM\SYSVOL\viswa.local\scripts\wazuh-agent-install.bat' -Verb RunAs -Wait
+
+```
+
+Note: GPO startup scripts run as SYSTEM automatically — so when deployed via GPO on reboot it will work. The access denied is only because sai is a standard user running it manually.
+
+### Check Service (on endpoint)
+
+```cmd
+sc query WazuhSvc
+```
+
+Expected: `STATE: 4 RUNNING`
+
+### Verify Agent in Wazuh Dashboard
+
+Log into `https://aiwazuh.socexperts.space` → **Agents** → endpoint should appear as **Active**.
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Root Cause | Fix |
-|---|---|---|
-| GPO not applying | GPO not linked to OU | Link GPO to correct OU in gpmc.msc |
-| Startup script does nothing | UNC path used instead of filename | Re-add script using filename only |
-| `Invoke-GPUpdate` fails silently | WMI / firewall blocking | Open WMI ports or just reboot endpoints manually |
-| Registry monitoring still present | Regex XML cleanup failed | Re-run with full block replacement logic |
-| Domain Controller rebooted | DC was in `Wazuh-Agents` group | Audit group membership before deployment |
-| Agent installs but doesn't register | Wrong manager IP in MSI args | Verify `WAZUH_MANAGER` and `WAZUH_REGISTRATION_SERVER` values |
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| `wazuh-gpo-install.log` not found | BAT script not in GPO startup | Add `wazuh-agent-install.bat` to GPO Startup Scripts |
+| `Access is denied` running BAT manually | Standard user — needs admin | Run CMD as Administrator |
+| `Could not resolve hostname: aiwazuh.socexperts.space` | No DNS/internet on endpoint | Add hosts file entry: `echo <WAZUH_IP> aiwazuh.socexperts.space >> C:\Windows\System32\drivers\etc\hosts` |
+| `Auth key not imported` | Agent not registered yet | Run `agent-auth.exe -m aiwazuh.socexperts.space -P "Viswa@12345." -A <HOSTNAME>` |
+| MSI not found in `%TEMP%` | SYSVOL not reachable via IP | Use DC hostname not IP in `SYSVOL_SHARE` path |
+| SYSVOL not accessible | SYSVOL/NETLOGON shares missing | Run `net start netlogon` on DC |
+| GPO not applied | Computer in wrong OU | Move computer to `OU=Wazuh` in AD |
+| WazuhSvc not created after reboot | PS1 failed silently | Check `%TEMP%\wazuh-agent-install.log` on endpoint |
 
 ---
 
-## Repository Structure
+## Key Notes
 
-```
-.
-├── README.md
-├── scripts/
-│   └── wazuh-install.bat       # GPO startup script
-
-```
+- **Idempotent** — BAT skips install if `WazuhSvc` already exists and running
+- **SYSVOL path** — must use DC hostname (`WIN-IQ934P80NUM`), not IP address
+- **GPO runs as SYSTEM** — no elevation issues during actual deployment
+- **ossec.conf** — FIM directories and registry monitoring stripped for clean config
+- **SCA + remote commands** — enabled via `local_internal_options.conf`
+- **Registration password** — `Viswa@12345.` must match Wazuh manager authd config
 
 ---
 
+## Roll Out to 100 Endpoints
+
+1. Move all 100 computer accounts to `OU=Wazuh`
+2. Enable firewall rules on each endpoint (or push via separate GPO)
+3. Reboot each endpoint — GPO startup script runs automatically
+4. Monitor in Wazuh Dashboard — agents appear as Active within 1-2 minutes of boot
