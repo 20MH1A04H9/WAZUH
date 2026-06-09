@@ -1,6 +1,5 @@
 # 🔌 Wazuh Dashboard Plugins
-
-> MY VISWA-Wazuh · Version 2.19.5 · Compatible with Wazuh Dashboard
+> MY Wazuh · Version 2.19.5 · Compatible with Wazuh Dashboard
 
 This folder contains documentation and resources for optional Wazuh Dashboard plugins.
 
@@ -11,6 +10,8 @@ This folder contains documentation and resources for optional Wazuh Dashboard pl
 | 🔭 Observability | `observabilityDashboards` | Monitor logs, traces, and metrics |
 | 🔍 Query Workbench | `queryWorkbenchDashboards` | Run SQL/PPL queries from dashboards |
 | 🤖 ML Commons | `mlCommonsDashboards` | Manage machine learning models |
+| 📦 Logstash OpenSearch Output | `logstash-output-opensearch` | Ship Logstash data to OpenSearch |
+
 
 ## Install
 
