@@ -23,6 +23,9 @@ This folder contains documentation and resources for optional Wazuh Dashboard pl
 
 # ML Commons
 /usr/share/wazuh-dashboard/bin/opensearch-dashboards-plugin install mlCommonsDashboards --allow-root
+
+# Logstash OpenSearch output
+/usr/share/logstash/bin/logstash-plugin install logstash-output-opensearch
 ```
 
 ## Verify & Restart
