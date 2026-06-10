@@ -246,6 +246,12 @@ Network Devices
 Licensed under the **GNU General Public License v3.0** — see the [LICENSE](https://github.com/20MH1A04H9/WAZUH/blob/main/LICENSE) file for details.
 
 ---
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0%3A000033%2C50%3A0066cc%2C100%3A00bfff&height=120&section=footer&text=WAZUH&fontSize=28&fontColor=00cfff&animation=fadeIn&fontAlignY=65" width="100%"/>
+
+
+</div>
 
 <p align="center">
   🛡️ Securing the world, one endpoint at a time.
