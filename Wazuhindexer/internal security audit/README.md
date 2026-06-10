@@ -107,6 +107,91 @@ green  open  .opendistro_security_audit_<date>
 
 ---
 
+## Fix OpenSearch / Elasticsearch Yellow Health Status on a Single-Node Cluster
+
+### Why Are Indices Yellow?
+
+On a **single-node cluster**, a `Yellow` status is normal when indices are configured with replicas. Since there is no second node available, replica shards cannot be allocated.
+
+### Solution: Set Replicas to 0
+
+#### 1. Fix a Specific Index
+
+```bash
+curl -k -u admin:<your-password> -X PUT \
+"https://127.0.0.1:9200/security-auditlog-xxxx.xx.xx/_settings" \
+-H "Content-Type: application/json" \
+-d '{
+  "index": {
+    "number_of_replicas": 0
+  }
+}'
+```
+
+---
+
+#### 2. Fix All Existing Indices
+
+```bash
+curl -k -u admin:<your-password> -X PUT \
+"https://127.0.0.1:9200/*/_settings" \
+-H "Content-Type: application/json" \
+-d '{
+  "index": {
+    "number_of_replicas": 0
+  }
+}'
+```
+
+---
+
+#### 3. Prevent Future Indices from Becoming Yellow
+
+Create a default template that automatically sets replicas to `0` for all new indices.
+
+```bash
+curl -k -u admin:<your-password> -X PUT \
+"https://127.0.0.1:9200/_template/default_replicas" \
+-H "Content-Type: application/json" \
+-d '{
+  "index_patterns": ["*"],
+  "settings": {
+    "number_of_replicas": 0
+  }
+}'
+```
+
+---
+
+### Verify Cluster Health
+
+```bash
+curl -k -u admin:<your-password> \
+"https://127.0.0.1:9200/_cluster/health?pretty"
+```
+
+Expected output:
+
+```json
+{
+  "status": "green"
+}
+```
+
+### Notes
+
+- Replace `<your-password>` with your OpenSearch/Elasticsearch admin password.
+- This configuration is recommended only for **single-node deployments**.
+- In production multi-node environments, replicas should be enabled to provide high availability and fault tolerance.
+
+✅ After applying the above settings, all indices should transition from **Yellow** to **Green**.
+
+
+
+
+
+
+
 ## Step 5 — View Audit Logs
 
 ### Via curl
