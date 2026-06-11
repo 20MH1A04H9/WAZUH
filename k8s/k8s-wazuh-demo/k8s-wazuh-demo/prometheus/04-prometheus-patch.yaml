@@ -1,0 +1,36 @@
+# =============================================================================
+# Prometheus scrape config addition — K8s OTel Collector metrics
+#
+# Apply this PATCH to your existing Wazuh server Prometheus config:
+#   /opt/prometheus/prometheus.yml
+#
+# Run after applying K8s manifests:
+#   cat k8s-prometheus-patch.yaml >> /opt/prometheus/prometheus.yml
+#   curl -X POST http://localhost:9090/-/reload
+# =============================================================================
+
+# Add these jobs to the scrape_configs section of /opt/prometheus/prometheus.yml:
+
+  # ── K8s OTel Collector self-metrics (per node, via NodePort) ──
+  - job_name: 'k8s-otelcol'
+    static_configs:
+      - targets: ['K8S_NODE_IP:30888']   # Replace K8S_NODE_IP with your node IP
+    relabel_configs:
+      - target_label: cluster
+        replacement: wazuh-demo
+
+  # ── K8s OTel Collector Prometheus exposition (K8s metrics) ──
+  - job_name: 'k8s-metrics'
+    static_configs:
+      - targets: ['K8S_NODE_IP:30889']   # Replace K8S_NODE_IP with your node IP
+    relabel_configs:
+      - target_label: cluster
+        replacement: wazuh-demo
+
+  # ── kube-state-metrics ──
+  - job_name: 'kube-state-metrics'
+    static_configs:
+      - targets: ['K8S_NODE_IP:30880']   # Replace K8S_NODE_IP with your node IP
+    relabel_configs:
+      - target_label: cluster
+        replacement: wazuh-demo

@@ -1,0 +1,366 @@
+# =============================================================================
+# Demo Microservices — opentelemetry-demo subset
+# Generates real traces, metrics, and logs flowing into Wazuh via OTel Collector
+#
+# Services:
+#   frontend        — HTTP gateway (Python Flask + OTel SDK)
+#   order-service   — Order processing (Node.js + OTel SDK)
+#   inventory       — Inventory lookup (Go + OTel SDK)
+#   redis           — Cache backend
+#   load-generator  — Continuous synthetic traffic
+# =============================================================================
+
+# ── Redis (cache backend, no instrumentation needed) ─────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: wazuh-demo
+  labels:
+    app: redis
+    tier: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: wazuh-demo
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+
+---
+# ── Frontend service (uses opentelemetry-demo image) ─────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-demo-frontend
+  namespace: wazuh-demo
+  labels:
+    app: opentelemetry-demo-frontend
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opentelemetry-demo-frontend
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-demo-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/open-telemetry/demo:latest-frontend
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: "frontend"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=demo,service.version=1.0.0"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-demo-frontend
+  namespace: wazuh-demo
+spec:
+  selector:
+    app: opentelemetry-demo-frontend
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ── Cart service ──────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-demo-cartservice
+  namespace: wazuh-demo
+  labels:
+    app: opentelemetry-demo-cartservice
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentelemetry-demo-cartservice
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-demo-cartservice
+    spec:
+      containers:
+        - name: cartservice
+          image: ghcr.io/open-telemetry/demo:latest-cartservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: "cartservice"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=demo,service.version=1.0.0"
+            - name: REDIS_ADDR
+              value: "redis:6379"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-demo-cartservice
+  namespace: wazuh-demo
+spec:
+  selector:
+    app: opentelemetry-demo-cartservice
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ── Product catalog service ───────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-demo-productcatalogservice
+  namespace: wazuh-demo
+  labels:
+    app: opentelemetry-demo-productcatalogservice
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentelemetry-demo-productcatalogservice
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-demo-productcatalogservice
+    spec:
+      containers:
+        - name: productcatalogservice
+          image: ghcr.io/open-telemetry/demo:latest-productcatalogservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: "productcatalogservice"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=demo,service.version=1.0.0"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-demo-productcatalogservice
+  namespace: wazuh-demo
+spec:
+  selector:
+    app: opentelemetry-demo-productcatalogservice
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ── Recommendation service ────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-demo-recommendationservice
+  namespace: wazuh-demo
+  labels:
+    app: opentelemetry-demo-recommendationservice
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentelemetry-demo-recommendationservice
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-demo-recommendationservice
+    spec:
+      containers:
+        - name: recommendationservice
+          image: ghcr.io/open-telemetry/demo:latest-recommendationservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: "recommendationservice"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=demo,service.version=1.0.0"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "opentelemetry-demo-productcatalogservice:8080"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-demo-recommendationservice
+  namespace: wazuh-demo
+spec:
+  selector:
+    app: opentelemetry-demo-recommendationservice
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ── Currency service ──────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-demo-currencyservice
+  namespace: wazuh-demo
+  labels:
+    app: opentelemetry-demo-currencyservice
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentelemetry-demo-currencyservice
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-demo-currencyservice
+    spec:
+      containers:
+        - name: currencyservice
+          image: ghcr.io/open-telemetry/demo:latest-currencyservice
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: "currencyservice"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=demo,service.version=1.0.0"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-demo-currencyservice
+  namespace: wazuh-demo
+spec:
+  selector:
+    app: opentelemetry-demo-currencyservice
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ── Load generator — continuous synthetic traffic ─────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-demo-loadgenerator
+  namespace: wazuh-demo
+  labels:
+    app: opentelemetry-demo-loadgenerator
+    tier: tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentelemetry-demo-loadgenerator
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-demo-loadgenerator
+    spec:
+      containers:
+        - name: loadgenerator
+          image: ghcr.io/open-telemetry/demo:latest-loadgenerator
+          env:
+            - name: FRONTEND_ADDR
+              value: "opentelemetry-demo-frontend:8080"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "loadgenerator"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
