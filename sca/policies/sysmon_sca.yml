@@ -1,0 +1,90 @@
+policy:
+  id: "sysmon_security_policy"
+  file: "sysmon_sca.yml"
+  name: "Sysmon Installation and Tamper Compliance Policy"
+  description: "Checks if Sysmon is installed, the driver/service are present and running, and the registry configuration is not tampered with or removed"
+  references:
+    - "CIS Control 8"
+    - "MITRE ATT&CK T1562.001 - Impair Defenses: Disable or Modify Tools"
+    - "MITRE ATT&CK T1562.006 - Indicator Blocking"
+
+checks:
+
+  # ✅ 1. Sysmon Service Installed
+  - id: 40001
+    title: "Sysmon service must be installed"
+    description: "Checks if the Sysmon service is registered on the system"
+    remediation: "Install Sysmon: Sysmon64.exe -i sysmonconfig.xml"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon* -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name" -> r:Sysmon'
+      - 'r:HKLM\SYSTEM\CurrentControlSet\Services\Sysmon64'
+      - 'r:HKLM\SYSTEM\CurrentControlSet\Services\Sysmon'
+
+  # ✅ 2. Sysmon Driver Installed
+  - id: 40002
+    title: "Sysmon driver must be installed"
+    description: "Checks if the Sysmon minifilter/kernel driver is registered"
+    remediation: "Reinstall Sysmon to restore the driver: Sysmon64.exe -i sysmonconfig.xml"
+    condition: any
+    rules:
+      - 'r:HKLM\SYSTEM\CurrentControlSet\Services\SysmonDrv'
+      - 'c:powershell.exe -command "Get-Service -Name SysmonDrv -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Running'
+
+  # ✅ 3. Sysmon Service Running
+  - id: 40003
+    title: "Sysmon service must be running"
+    description: "Checks if the Sysmon service is currently active"
+    remediation: "Start the Sysmon service: Start-Service Sysmon64"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon* -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Running'
+
+  # 🚨 4. Sysmon Service must NOT be stopped or disabled
+  - id: 40004
+    title: "Sysmon service must not be stopped or disabled"
+    description: "Fails if the Sysmon service exists but has been stopped or its start type set to Disabled, a common tampering indicator"
+    remediation: "Investigate immediately - possible tamper/defense evasion attempt. Restart service or reinstall Sysmon"
+    condition: none
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon* -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Stopped'
+      - 'c:powershell.exe -command "Get-CimInstance Win32_Service -Filter \"Name LIKE \"Sysmon%\"\" | Select-Object -ExpandProperty StartMode" -> r:Disabled'
+
+  # 🚨 5. Sysmon Event Log channel must exist and not be cleared/removed
+  - id: 40005
+    title: "Sysmon operational event log channel must be present"
+    description: "Fails if the Microsoft-Windows-Sysmon/Operational event log channel has been deleted or disabled, which would indicate logging tampering"
+    remediation: "Re-enable the Sysmon event log channel or reinstall Sysmon"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "(Get-WinEvent -ListLog \"Microsoft-Windows-Sysmon/Operational\" -ErrorAction SilentlyContinue).IsEnabled" -> r:True'
+
+  # 🚨 6. Sysmon binary must not be removed from disk
+  - id: 40006
+    title: "Sysmon binary must be present on disk"
+    description: "Checks that the Sysmon executable still exists in its installed location, fails if it has been deleted while the service registration remains (incomplete uninstall/tamper)"
+    remediation: "Reinstall Sysmon to restore the binary"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Test-Path (Get-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Sysmon64\" -Name ImagePath -ErrorAction SilentlyContinue).ImagePath" -> r:True'
+      - 'c:powershell.exe -command "Test-Path \"C:\\Windows\\Sysmon64.exe\"" -> r:True'
+      - 'c:powershell.exe -command "Test-Path \"C:\\Windows\\Sysmon.exe\"" -> r:True'
+
+  # ✅ 7. Sysmon configuration (rule hash) must be applied
+  - id: 40007
+    title: "Sysmon must have an active configuration loaded"
+    description: "Checks if Sysmon has a configuration schema/ruleset loaded (not running with default/no config)"
+    remediation: "Apply a configuration: Sysmon64.exe -c sysmonconfig.xml"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "(Get-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Sysmon64\\Parameters\" -ErrorAction SilentlyContinue).Rules -ne $null" -> r:True'
+      - 'c:powershell.exe -command "(Get-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Sysmon\\Parameters\" -ErrorAction SilentlyContinue).Rules -ne $null" -> r:True'
+
+  # 🚨 8. Sysmon registry key permissions must not be world-writable (tamper-proofing)
+  - id: 40008
+    title: "Sysmon service registry key must not have weak ACLs"
+    description: "Fails if Everyone or Authenticated Users have write access to the Sysmon service registry key, which would allow tampering with its configuration"
+    remediation: "Restrict registry ACLs on HKLM\\SYSTEM\\CurrentControlSet\\Services\\Sysmon64 to Administrators/SYSTEM only"
+    condition: none
+    rules:
+      - 'c:powershell.exe -command "(Get-Acl \"HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Sysmon64\").Access | Where-Object {$_.IdentityReference -match \"Everyone|Authenticated Users\" -and $_.RegistryRights -match \"FullControl|Write\"}" -> r:.+'
