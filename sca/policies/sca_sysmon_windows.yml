@@ -1,0 +1,86 @@
+policy:
+  id: "sysmon_config_policy"
+  file: "sysmon_config_sca.yml"
+  name: "Sysmon Configuration Coverage Policy"
+  description: "Checks Sysmon installation status, driver, service health, and event log coverage on Windows endpoints"
+  references:
+    - "CIS Control 8"
+    - "MITRE ATT&CK T1562.001 - Impair Defenses: Disable or Modify Tools"
+
+checks:
+
+  # Sysmon service installed
+  - id: 60001
+    title: "Sysmon service must be installed"
+    description: "Checks if the Sysmon service is registered on the system"
+    remediation: "Install Sysmon: Sysmon64.exe -i sysmonconfig.xml"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon64 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name" -> r:Sysmon'
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name" -> r:Sysmon'
+
+  # Sysmon driver installed
+  - id: 60002
+    title: "Sysmon kernel driver must be installed"
+    description: "Checks if the SysmonDrv minifilter driver is registered"
+    remediation: "Reinstall Sysmon to restore the driver"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name SysmonDrv -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name" -> r:SysmonDrv'
+
+  # Sysmon service running
+  - id: 60003
+    title: "Sysmon service must be running"
+    description: "Checks if the Sysmon service is currently active"
+    remediation: "Start the Sysmon service: Start-Service Sysmon64"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon64 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Running'
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Running'
+
+  # Sysmon must not be stopped
+  - id: 60004
+    title: "Sysmon service must not be stopped"
+    description: "Fails if the Sysmon service exists but is stopped, a common tamper indicator"
+    remediation: "Investigate immediately - possible tamper attempt. Restart service or reinstall Sysmon"
+    condition: none
+    rules:
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon64 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Stopped'
+      - 'c:powershell.exe -command "Get-Service -Name Sysmon -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Status" -> r:Stopped'
+
+  # Sysmon operational event log present and enabled
+  - id: 60005
+    title: "Sysmon operational event log must be present and enabled"
+    description: "Checks that the Microsoft-Windows-Sysmon/Operational log channel exists and is enabled"
+    remediation: "Re-enable the Sysmon event log channel or reinstall Sysmon"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "(Get-WinEvent -ListLog Microsoft-Windows-Sysmon/Operational -ErrorAction SilentlyContinue).IsEnabled" -> r:True'
+
+  # Sysmon binary present on disk
+  - id: 60006
+    title: "Sysmon binary must be present on disk"
+    description: "Checks that the Sysmon executable exists in the Windows directory"
+    remediation: "Reinstall Sysmon to restore the binary"
+    condition: any
+    rules:
+      - 'f:C:\Windows\Sysmon64.exe'
+      - 'f:C:\Windows\Sysmon.exe'
+
+  # Sysmon event log must have recent events (actively logging)
+  - id: 60007
+    title: "Sysmon must be actively generating events"
+    description: "Checks that the Sysmon operational log contains at least one recorded event, confirming the driver is actively capturing telemetry"
+    remediation: "Verify Sysmon configuration is applied and driver is functioning: Sysmon64.exe -c"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "(Get-WinEvent -ListLog Microsoft-Windows-Sysmon/Operational -ErrorAction SilentlyContinue).RecordCount" -> r:^[1-9]'
+
+  # Sysmon process creation auditing (EventID 1) coverage check
+  - id: 60008
+    title: "Sysmon must be logging process creation events"
+    description: "Checks that Sysmon Event ID 1 (Process Create) events exist in the operational log, confirming core telemetry coverage"
+    remediation: "Verify sysmonconfig includes ProcessCreate event rules and reapply: Sysmon64.exe -c sysmonconfig.xml"
+    condition: any
+    rules:
+      - 'c:powershell.exe -command "(Get-WinEvent -FilterHashtable @{LogName=\"Microsoft-Windows-Sysmon/Operational\";Id=1} -MaxEvents 1 -ErrorAction SilentlyContinue).Count" -> r:^[1-9]'
