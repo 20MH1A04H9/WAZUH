@@ -1,3 +1,9 @@
+### SCA Policy Installer
+```bash
+curl -so ~/install_sca.sh https://raw.githubusercontent.com/20MH1A04H9/WAZUH/refs/heads/main/sca/install_sca.sh && sudo bash ~/install_sca.sh
+```
+
+
 ## Windows Agent — SCA Configuration
 
 Add the following block to the Windows agent configuration file:
