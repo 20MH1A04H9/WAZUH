@@ -19,6 +19,7 @@ Add the following block to the Windows agent configuration file:
     <policy>C:\Program Files (x86)\ossec-agent\shared\antivirus_sca.yml</policy>
     <policy>C:\Program Files (x86)\ossec-agent\shared\win_applications_sca.yml</policy>
     <policy>C:\Program Files (x86)\ossec-agent\shared\powershell_sca.yml</policy>
+    <policy>C:\Program Files (x86)\ossec-agent\shared\sca_sysmon_windows.yml</policy>
   </policies>
 </sca>
 ```
