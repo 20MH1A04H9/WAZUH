@@ -1,0 +1,29 @@
+policy:
+  id: "ie_esc_security_policy"
+  file: "ie_esc_sca.yml"
+  name: "IE Enhanced Security Configuration Policy"
+  description: "Checks that Internet Explorer Enhanced Security Configuration (IE ESC) is enabled for both Administrators and Users on Windows Server endpoints. IE ESC OFF on a Domain Controller exposes the server to web-based attacks."
+  references:
+    - "CIS Microsoft Windows Server 2022 Benchmark"
+    - "STIG V-254442"
+    - "MITRE ATT&CK T1189 - Drive-by Compromise"
+
+checks:
+
+  # IE ESC must be ON for Administrators
+  - id: 70001
+    title: "IE Enhanced Security Configuration must be enabled for Administrators"
+    description: "Checks that IE ESC IsInstalled=1 for the Administrators group. When OFF, administrators browsing the web on the DC are exposed to drive-by downloads, malicious scripts, and web-based exploits."
+    remediation: "Enable via Server Manager > Local Server > IE Enhanced Security Configuration > Administrators > On. Or via GPO: Computer Configuration > Windows Settings > Security Settings > Registry."
+    condition: all
+    rules:
+      - 'r:HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073} -> IsInstalled -> 1'
+
+  # IE ESC must be ON for Users
+  - id: 70002
+    title: "IE Enhanced Security Configuration must be enabled for Users"
+    description: "Checks that IE ESC IsInstalled=1 for the Users group. When OFF, any user session on the DC is exposed to web-based attacks."
+    remediation: "Enable via Server Manager > Local Server > IE Enhanced Security Configuration > Users > On. Or enforce via GPO across all servers."
+    condition: all
+    rules:
+      - 'r:HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073} -> IsInstalled -> 1'
