@@ -199,7 +199,7 @@ Windows Server / Endpoint
 │       └── Windows Services Status
 │
 └── Fluent Bit
-    ├── Windows Application Logs ───────────────────► Loki
+    ├── Windows Application Logs ───────────────────► opensearch
                                                         │
                                                ┌────────▼────────┐
                                                │     Grafana     │
