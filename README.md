@@ -181,6 +181,59 @@ Maps all detections to the MITRE ATT&CK framework
 ```
  
 ---
+## Full Integration Stack
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                              DATA SOURCES / AGENTS                                 │
+│                                                                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │  Windows   │  │   Sysmon   │  │   Linux    │  │  OSQuery   │  │  Graylog   │    │
+│  │  Agent     │  │            │  │  Agent     │  │            │  │ Winlogbeat │    │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │
+└─────────────────────────────────────┬──────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                               WAZUH SIEM CORE                                      │
+│                                                                                    │
+│     ┌──────────────────────┐              ┌──────────────────────────┐             │
+│     │   Wazuh Manager      │◄────────────►│   OpenSearch Indexer     │             │
+│     │   Rules / Decoders   │              │   DLS per tenant         │             │
+│     │   SCA Policies       │              │   ISM · Anomaly Detector │             │
+│     └──────────┬───────────┘              └───────────────┬──────────┘             │
+│                └─────────────────┬────────────────────────┘                        │
+│                                  ▼                                                 │
+│                 ┌─────────────────────────────┐                                    │
+│                 │   Wazuh Dashboard           │                                    │
+│                 │   (HTTPS port 443)          │                                    │
+│                 └─────────────────────────────┘                                    │
+└───────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────────┘
+        │              │              │              │              │
+        ▼              ▼              ▼              ▼              ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ THREAT INTEL │ │ CASE MGMT    │ │  ALERTING    │ │OBSERVABILITY │ │ ML/ANALYTICS │
+│              │ │              │ │              │ │              │ │              │
+│ VirusTotal   │ │ TheHive      │ │ Slack/Teams  │ │ Prometheus   │ │ Anomaly      │
+│ MISP         │ │ Webhook      │ │ Telegram     │ │ Grafana      │ │ Detector     │
+│              │ │              │ │ Email/Gmail  │ │ Loki         │ │ Groq         │
+│              │ │              │ │ PagerDuty    │ │ OTel         │ │ LLaMA 3.3    │
+│              │ │              │ │ Webhook      │ │ Data Prepper │ │ ML Commons   │
+└──────────────┘ └──────────────┘ └──────────────┘ └──────┬───────┘ └──────┬───────┘
+                                                          └────────┬────────┘
+                                                                   ▼
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                           SOAR / ACTIVE RESPONSE                                   │
+│                                                                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │  Active    │  │ Shadow IT  │  │Velociraptor│  │  CoPilot   │  │ Tetragon   │    │
+│  │  Response  │  │  Script    │  │            │  │            │  │  eBPF      │    │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │
+└────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+
+---
  
 ### Windows Enterprise Endpoint Stack
  
@@ -259,4 +312,17 @@ Licensed under the **GNU General Public License v3.0** — see the [LICENSE](htt
 
 <p align="center">
   <a href="https://github.com/20MH1A04H9/WAZUH">github.com/20MH1A04H9/WAZUH</a>
+  &nbsp;·&nbsp;
+  <a href="https://saiviswanath064.github.io">saiviswanath064.github.io</a>
 </p>
+
+<div align="center">
+
+**Defenders think in lists. Attackers think in graphs. We built this so you can think in both.**
+
+⭐ Star this repo if it helped your team &nbsp;|&nbsp; 🐛 Open an issue for corrections &nbsp;|&nbsp; 🔀 Fork and customize for your stack
+
+</div>
+
+---
+
