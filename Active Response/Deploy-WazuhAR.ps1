@@ -9,9 +9,10 @@ $ErrorActionPreference = "Stop"
 
 $PYTHON_URL      = "https://www.python.org/ftp/python/3.12.2/python-3.12.2-amd64.exe"
 $PYTHON_INSTALLER= "$env:TEMP\python-3.12.2-amd64.exe"
-$PYTHON_EXE      = "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe"
-$PIP_EXE         = "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Scripts\pip.exe"
-$PYINSTALLER_EXE = "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Scripts\pyinstaller.exe"
+$PYTHON_BASE     = "$env:LOCALAPPDATA\Programs\Python\Python312"
+$PYTHON_EXE      = "$PYTHON_BASE\python.exe"
+$PIP_EXE         = "$PYTHON_BASE\Scripts\pip.exe"
+$PYINSTALLER_EXE = "$PYTHON_BASE\Scripts\pyinstaller.exe"
 
 $SCRIPT_URL      = "https://raw.githubusercontent.com/20MH1A04H9/WAZUH/2eeab943383ca4980379633e57c814be6207f827/Active%20Response/software-remediation.py"
 $WORK_DIR        = "C:\WazuhAR"
