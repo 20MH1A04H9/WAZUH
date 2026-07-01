@@ -4,18 +4,18 @@
 
 ![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/PLATFORM-UBUNTU%2022.04-555555?style=for-the-badge)
-![Wazuh](https://img.shields.io/badge/WAZUH-4.14.2-0052CC?style=for-the-badge)
+![Wazuh](https://img.shields.io/badge/WAZUH-4.14.5-0052CC?style=for-the-badge)
 ![Agents](https://img.shields.io/badge/AGENTS-200+-E8590C?style=for-the-badge)
 ![Indexer](https://img.shields.io/badge/INDEXER-OPENSEARCH-D32F2F?style=for-the-badge)
 ![Status](https://img.shields.io/badge/STATUS-ACTIVE-26A69A?style=for-the-badge)
 ![Windows](https://img.shields.io/badge/AGENT-WINDOWS%20%7C%20LINUX-333333?style=for-the-badge)
 
-`Wazuh v4.14.2` · `Ubuntu 22.04 LTS`
+`Wazuh v4.14.5` · `Ubuntu 22.04 LTS`
 
 ---
 ## Dashboard Preview
  
-![Wazuh Dashboard](./assets/dashboard.png)
+![Wazuh Dashboard](https://raw.githubusercontent.com/20MH1A04H9/WAZUH/main/assets/dashboard.png)
  
 ---
 
