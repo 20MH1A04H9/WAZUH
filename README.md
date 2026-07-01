@@ -247,7 +247,7 @@ Windows Server / Endpoint
 │       └── Vulnerability Assessment
 │
 ├── Grafana Alloy
-│   └── Metrics ──────────────────────────────────► Prometheus
+│   └── Metrics ──────────────────────────────────► Loki
 │       ├── CPU / RAM / Disk / Network
 │       └── Windows Services Status
 │
