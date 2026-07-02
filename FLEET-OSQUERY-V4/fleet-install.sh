@@ -3,8 +3,7 @@
 # Fleet v4 Server Install & Config Script
 # Target OS  : Ubuntu 22.04 / 24.04 LTS
 # Fleet Ver  : v4.86.1
-# Author     : Viswa / ISS Technologies
-# Usage      : sudo bash fleet-install.sh
+# Author     : Viswa
 # ============================================================
 
 set -euo pipefail
