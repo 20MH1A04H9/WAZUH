@@ -3,7 +3,8 @@
 # Fleet v4 Server Install & Config Script
 # Target OS  : Ubuntu 22.04 / 24.04 LTS
 # Fleet Ver  : v4.86.1
-# Author     : Viswa
+# Author     : Viswa 
+# Usage      : sudo bash fleet-install.sh
 # ============================================================
 
 set -euo pipefail
@@ -47,7 +48,7 @@ echo ""
 # ─────────────────────────────────────────
 section "Server Configuration"
 
-ask "Enter server IP or domain (e.g. 20.244.3.180 or fleet.example.com):"
+ask "Enter server IP or domain (e.g. 127.0.0.1 or fleet.example.com):"
 read -r FLEET_DOMAIN
 [[ -z "$FLEET_DOMAIN" ]] && fail "Server IP/domain cannot be empty."
 
@@ -305,23 +306,4 @@ else
   fail "Health check failed (HTTP ${HTTP_CODE}). Run: journalctl -u fleet -n 50"
 fi
 
-# ─────────────────────────────────────────
-# DONE
-# ─────────────────────────────────────────
-echo ""
-echo -e "${GREEN}${BOLD}══════════════════════════════════════════════${NC}"
-echo -e "${GREEN}${BOLD}  Fleet v${FLEET_VERSION} install complete!${NC}"
-echo -e "${GREEN}${BOLD}══════════════════════════════════════════════${NC}"
-echo ""
-echo -e "  ${BOLD}Dashboard${NC}  : https://${FLEET_DOMAIN}:${FLEET_PORT}/setup"
-echo -e "  ${BOLD}Config${NC}     : ${FLEET_CONFIG}"
-echo -e "  ${BOLD}Logs${NC}       : journalctl -u fleet -f"
-echo -e "  ${BOLD}Status${NC}     : systemctl status fleet"
-echo ""
-echo -e "${YELLOW}${BOLD}Next steps:${NC}"
-echo -e "  1. Open port ${FLEET_PORT} in your firewall/NSG"
-echo -e "  2. Complete setup wizard at https://${FLEET_DOMAIN}:${FLEET_PORT}/setup"
-echo -e "  3. Create read-only API user:"
-echo -e "     fleetctl user create --name 'API ReadOnly' --api-only --global-role observer"
-[[ "$TLS_CHOICE" == "1" ]] && echo -e "  4. Replace self-signed cert with Let's Encrypt when ready"
 echo ""
