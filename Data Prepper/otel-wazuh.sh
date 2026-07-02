@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
 # OpenTelemetry + Wazuh APM Stack — Automated Install Script
-# Stack: Ubuntu 24.04 LTS | Wazuh 4.14.5 | Data Prepper 2.15.1
-#        OTel Collector Contrib 0.152.0 | Prometheus 3.4.0
+# Stack: Ubuntu 24.04 LTS | Wazuh 4.14.5 | Data Prepper 2.16.0
+#        OTel Collector Contrib 0.154.0 | Prometheus 3.12.0
+# Updated: 2026-07-02
 # =============================================================================
 set -euo pipefail
 IFS=$'\n\t'
@@ -15,9 +16,9 @@ NODE_EXPORTER_TARGETS=()                                   # Optional: ("192.168
 
 # Component versions
 WAZUH_VERSION="4.14.5"
-DATA_PREPPER_VERSION="2.15.1"
-OTEL_VERSION="0.152.0"
-PROMETHEUS_VERSION="3.4.0"
+DATA_PREPPER_VERSION="2.16.0"
+OTEL_VERSION="0.154.0"
+PROMETHEUS_VERSION="3.12.0"
 
 # Install paths
 DATA_PREPPER_DIR="/opt/data-prepper"
@@ -129,18 +130,12 @@ https://packages.wazuh.com/4.x/apt/ stable main" \
   apt-get install -y -qq wazuh-dashboard
 
   info "Initialising Wazuh…"
-  # Generate certificates and set admin password
   /usr/share/wazuh-indexer/bin/indexer-security-init.sh 2>/dev/null || true
 
   systemctl enable --now wazuh-indexer wazuh-manager wazuh-dashboard
   sleep 10
 
-  # Set admin password
   info "Setting admin password…"
-  HASHED=$(echo -n "${WAZUH_ADMIN_PASSWORD}" | \
-    /usr/share/wazuh-indexer/plugins/opensearch-security/tools/hash.sh -stdin 2>/dev/null || \
-    python3 -c "import hashlib; print(hashlib.sha256(b'${WAZUH_ADMIN_PASSWORD}').hexdigest())")
-  # Apply via security config tool if available
   /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
     -cd /etc/wazuh-indexer/opensearch-security/ \
     -icl -nhnv \
@@ -148,7 +143,6 @@ https://packages.wazuh.com/4.x/apt/ stable main" \
     -cert /etc/wazuh-indexer/certs/admin.pem \
     -key /etc/wazuh-indexer/certs/admin-key.pem 2>/dev/null || true
 
-  # Wait for indexer to be ready
   info "Waiting for Wazuh Indexer to be ready…"
   for i in $(seq 1 30); do
     if curl -sk -u "admin:${WAZUH_ADMIN_PASSWORD}" \
@@ -176,7 +170,7 @@ step3_install_data_prepper() {
   fi
 
   if [[ ! -d "${EXTRACT_DIR}" ]]; then
-    info "Downloading Data Prepper…"
+    info "Downloading Data Prepper ${DATA_PREPPER_VERSION}…"
     wget -q "https://artifacts.opensearch.org/data-prepper/${DATA_PREPPER_VERSION}/${TARBALL}" \
       -O "/opt/${TARBALL}"
     info "Extracting…"
@@ -291,7 +285,7 @@ step4_install_otel() {
     log "OTel Collector already installed — skipping"
   else
     local DEB="otelcol-contrib_${OTEL_VERSION}_linux_amd64.deb"
-    info "Downloading OTel Collector Contrib…"
+    info "Downloading OTel Collector Contrib ${OTEL_VERSION}…"
     wget -q "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/${DEB}" \
       -O "/tmp/${DEB}"
     dpkg -i "/tmp/${DEB}"
@@ -317,6 +311,9 @@ exporters:
       insecure: true
 
 service:
+  telemetry:
+    metrics:
+      address: 0.0.0.0:8888
   pipelines:
     traces:
       receivers: [otlp]
@@ -348,7 +345,7 @@ step5_install_prometheus() {
   fi
 
   if [[ ! -d "${EXTRACT_DIR}" ]]; then
-    info "Downloading Prometheus…"
+    info "Downloading Prometheus ${PROMETHEUS_VERSION}…"
     wget -q "https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/${TARBALL}" \
       -O "/opt/${TARBALL}"
     tar -xzf "/opt/${TARBALL}" -C /opt/
@@ -360,8 +357,7 @@ step5_install_prometheus() {
   mkdir -p "${PROMETHEUS_DIR}/data"
 
   info "Writing Prometheus config…"
-  # NOTE: data-prepper is intentionally excluded — Data Prepper 2.15.1 does not
-  # expose a /metrics or /prometheus endpoint. Adding it causes a permanent 404.
+  # Data Prepper exposes metrics at /metrics/sys on port 4900
   cat > "${PROMETHEUS_DIR}/prometheus.yml" <<PROMCFG
 global:
   scrape_interval: 15s
@@ -375,6 +371,11 @@ scrape_configs:
   - job_name: 'otelcol'
     static_configs:
       - targets: ['localhost:8888']
+
+  - job_name: 'data-prepper'
+    metrics_path: '/metrics/sys'
+    static_configs:
+      - targets: ['localhost:4900']
 PROMCFG
 
   # Append Node Exporter targets if configured
@@ -440,7 +441,7 @@ step6_connect_prometheus() {
   else
     info "Adding encryption master key to opensearch.yml…"
     local KEY
-    KEY=$(openssl rand -hex 12)   # 24-char hex = valid 24-byte key
+    KEY=$(openssl rand -hex 12)
     echo "plugins.query.datasources.encryption.masterkey: ${KEY}" >> "${OPENSEARCH_YML}"
     log "Encryption key added"
 
@@ -543,6 +544,7 @@ print_summary() {
   echo -e "  ${BOLD}OTel gRPC${RESET}         →  ${SERVER_IP}:4317"
   echo -e "  ${BOLD}OTel HTTP${RESET}         →  http://${SERVER_IP}:4318"
   echo -e "  ${BOLD}Data Prepper API${RESET}  →  http://${SERVER_IP}:4900"
+  echo -e "  ${BOLD}Data Prepper Metrics${RESET} → http://${SERVER_IP}:4900/metrics/sys"
   echo ""
   echo -e "  ${BOLD}Dashboard login${RESET}: admin / <your password>"
   echo ""
@@ -574,8 +576,8 @@ main() {
   cat <<'BANNER'
   ╔═══════════════════════════════════════════════════════╗
   ║    OpenTelemetry + Wazuh APM Stack Installer          ║
-  ║    Wazuh 4.14.5 | Data Prepper 2.15.1                 ║
-  ║    OTel Collector 0.152.0 | Prometheus 3.4.0          ║
+  ║    Wazuh 4.14.5 | Data Prepper 2.16.0                 ║
+  ║    OTel Collector 0.154.0 | Prometheus 3.12.0         ║
   ╚═══════════════════════════════════════════════════════╝
 BANNER
   echo -e "${RESET}"
