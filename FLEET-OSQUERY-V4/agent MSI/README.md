@@ -1,5 +1,14 @@
 # Fleet osquery Agent Install
 
+## 0. Prerequisites — run on the server
+ 
+```bash
+apt-get install -y docker.io
+systemctl start docker
+systemctl enable docker
+docker --version
+```
+
 ## 1. Generate the MSI
 
 ```bash
