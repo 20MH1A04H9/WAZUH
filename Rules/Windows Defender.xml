@@ -1,0 +1,57 @@
+<group name="windows-defender-tamper,">
+  <rule id="62154" level="5" overwrite="yes">
+    <if_sid>62100</if_sid>
+    <field name="win.system.eventID">^5007$</field>
+    <options>no_full_log</options>
+    <description>Windows Defender: Feature config changed - $(win.eventdata.old Value) -> $(win.eventdata.new Value)</description>
+  </rule>
+
+  <rule id="121030" level="12">
+    <if_sid>62154</if_sid>
+    <field name="win.eventdata.old Value" type="pcre2">(?i)TamperProtection = 0x5</field>
+    <field name="win.eventdata.new Value" type="pcre2">(?i)TamperProtection = 0x4</field>
+    <options>no_full_log</options>
+    <description>CRITICAL: Windows Defender Tamper Protection was DISABLED on $(win.system.computer)</description>
+  </rule>
+
+  <rule id="121031" level="3">
+    <if_sid>62154</if_sid>
+    <field name="win.eventdata.old Value" type="pcre2">(?i)TamperProtection = 0x4</field>
+    <field name="win.eventdata.new Value" type="pcre2">(?i)TamperProtection = 0x5</field>
+    <options>no_full_log</options>
+    <description>Windows Defender Tamper Protection was re-enabled on $(win.system.computer)</description>
+  </rule>
+</group>
+<group name="windows-defender-tamper,">
+  <rule id="121032" level="10">
+    <if_sid>62154</if_sid>
+    <field name="win.eventdata.old Value" type="pcre2">(?i)SpyNetReporting = 0x[12]</field>
+    <field name="win.eventdata.new Value" type="pcre2">(?i)SpyNetReporting = 0x0</field>
+    <options>no_full_log</options>
+    <description>Windows Defender: Cloud-delivered protection was turned OFF on $(win.system.computer)</description>
+  </rule>
+
+  <rule id="121033" level="3">
+    <if_sid>62154</if_sid>
+    <field name="win.eventdata.old Value" type="pcre2">(?i)SpyNetReporting = 0x0</field>
+    <field name="win.eventdata.new Value" type="pcre2">(?i)SpyNetReporting = 0x[12]</field>
+    <options>no_full_log</options>
+    <description>Windows Defender: Cloud-delivered protection was turned back ON on $(win.system.computer)</description>
+  </rule>
+
+  <rule id="121034" level="8">
+    <if_sid>62154</if_sid>
+    <field name="win.eventdata.old Value" type="pcre2">(?i)SubmitSamplesConsent = 0x1</field>
+    <field name="win.eventdata.new Value" type="pcre2">(?i)SubmitSamplesConsent = 0x0</field>
+    <options>no_full_log</options>
+    <description>Windows Defender: Automatic sample submission was turned OFF on $(win.system.computer)</description>
+  </rule>
+
+  <rule id="121035" level="3">
+    <if_sid>62154</if_sid>
+    <field name="win.eventdata.old Value" type="pcre2">(?i)SubmitSamplesConsent = 0x0</field>
+    <field name="win.eventdata.new Value" type="pcre2">(?i)SubmitSamplesConsent = 0x1</field>
+    <options>no_full_log</options>
+    <description>Windows Defender: Automatic sample submission was turned back ON on $(win.system.computer)</description>
+  </rule>
+</group>
