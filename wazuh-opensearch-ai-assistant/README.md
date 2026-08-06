@@ -1,4 +1,15 @@
-# WAZUH OpenSearch AI Assistant
+<h1 align="center">WAZUH OpenSearch AI Assistant</h1>
+
+<p align="center">
+  AI-powered security analysis for Wazuh using OpenSearch ML Commons, Assistant, Claude, OpenAI, Gemini, and MCP.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Wazuh-4.14.x-blue"/>
+  <img src="https://img.shields.io/badge/OpenSearch-2.19.x-green"/>
+  <img src="https://img.shields.io/badge/AI-Claude%20%7C%20OpenAI%20%7C%20Gemini%20%7C%20groq -orange"/>
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey"/>
+</p>
 
 <img src="https://raw.githubusercontent.com/20MH1A04H9/WAZUH/main/assets/Aiwazuh.png" alt="Wazuh AI Banner" width="900"/>
 
