@@ -1,4 +1,10 @@
-# Wazuh + OpenSearch AI Assistant Configuration Guide
+# WAZUH OpenSearch AI Assistant
+
+<img src="https://raw.githubusercontent.com/20MH1A04H9/WAZUH/main/assets/Aiwazuh.png" alt="Wazuh AI Banner" width="900"/>
+
+## Overview
+
+This repository contains a complete guide for integrating Wazuh with OpenSearch AI Assistant, ML Commons, Claude, OpenAI, and Gemini.
 
 Production-ready setup guide for enabling **AI-powered security analysis inside Wazuh Dashboard** using **OpenSearch ML Commons**, **OpenSearch Assistant**, and an external LLM provider such as **Claude (AWS Bedrock)**, **OpenAI**, or **Gemini**.
 
