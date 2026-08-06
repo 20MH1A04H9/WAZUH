@@ -1,6 +1,9 @@
-# Groq LLaMA AI Integration with Wazuh (OpenSearch ML Commons)
+<h1 align="center">Groq LLaMA AI Integration with Wazuh (OpenSearch ML Commons)</h1>
 
-Connect Groq's LLaMA models to Wazuh via OpenSearch ML Commons. Run all commands in **Wazuh Dashboard → Dev Tools**.
+<p align="center"> Connect <strong>Groq's LLaMA models</strong> to <strong>Wazuh</strong> through <strong>OpenSearch ML Commons</strong> and perform AI-powered security analysis directly from <strong>Wazuh Dashboard → Dev Tools</strong>. </p>
+
+<p align="center"> <img src="https://img.shields.io/badge/Wazuh-4.14.x-blue"/> <img src="https://img.shields.io/badge/OpenSearch-2.19.x-green"/> <img src="https://img.shields.io/badge/Groq-LLaMA%203.3%2070B-orange"/> <img src="https://img.shields.io/badge/ML%20Commons-Enabled-success"/> <img src="https://img.shields.io/badge/License-MIT-lightgrey"/> </p>
+
 
 ---
 
