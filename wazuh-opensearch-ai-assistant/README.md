@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/License-MIT-lightgrey"/>
 </p>
 
-<img src="https://raw.githubusercontent.com/20MH1A04H9/WAZUH/main/assets/Aiwazuh.png" alt="Wazuh AI Banner" width="900"/>
+<img src="https://github.com/20MH1A04H9/WAZUH/blob/ba1173fe54c1fb945742415f0d129426d7f0edab/assets/Aiwazuh.png" alt="Wazuh AI Banner" width="900"/>
 
 ## Overview
 
