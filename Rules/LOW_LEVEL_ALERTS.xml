@@ -1,0 +1,128 @@
+<!-- ============================= -->
+       <!--Rule ID 100250 - 100300-->
+<!-- ============================= -->
+
+
+
+
+<group name="file_extraction">
+<rule id="100251" level="5">
+<if_sid>61603</if_sid>
+<!--<if_group>sysmon_event_11</if_group>-->
+<field name="win.eventdata.image" type="pcre2">C:\\\\Program Files\\\\7-Zip\\\\7zG.exe</field>
+<description>file extraction by 7zip</description>
+</rule>
+
+<rule id="100252" level="5">
+<if_sid>61617</if_sid>
+<field name="win.eventdata.image" type="pcre2">(?i)C:\\\\Windows\\\\Explorer.EXE</field>
+<field name="win.eventdata.contents" type="pcre2">\.zip$</field>
+<description>file extraction by default archiver </description>
+</rule>
+
+<rule id="100253" level="0" frequency="10" timeframe="5">
+<if_matched_sid>100252</if_matched_sid>
+<description>supressed alerts </description>
+</rule>
+
+
+  <rule id="100254" level="4">
+    <if_sid>60009</if_sid>
+    <field name="win.system.message" type="pcre2">(?i)blocked by your antivirus software</field>
+    <description>Windows Security blocked malicious command executed via PowerShell.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+
+
+  <rule id="100255" level="5">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.contextInfo" type="pcre2">(?i)ExecutionPolicy bypass|exec bypass</field>
+    <description>PowerShell execution policy set to bypass.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="100256" level="5">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.contextInfo" type="pcre2">(?i)Invoke-WebRequest|IWR.*-url|IWR.*-InFile</field>
+    <description>Invoke Webrequest executed, possible download cradle detected.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+    <!-- ======================================================
+       PowerShell executed by SCCM / System Tasks
+       ====================================================== -->
+  <!-- Examples include: SYSTEM account, SCCM paths, CCM cache -->
+  <rule id="100257" level="0">
+    <if_sid>60009</if_sid>
+    <regex>CCM|C:\\Windows\\CCM|C:\\Windows\\CCMCache|NT AUTHORITY\\SYSTEM|SYSTEM</regex>
+    <description>Ignore known benign SCCM/System PowerShell executions.</description>
+  </rule>
+
+
+  <rule id="100258" level="5" overwrite="yes">
+    <if_sid>4801</if_sid>
+    <description>$(action)</description>
+  </rule>
+ 
+  <rule id="100259" level="5">
+    <if_sid>100258</if_sid>
+    <field name="agent.id">001</field>
+    <description>$(action)</description>
+  </rule>
+
+
+
+  <rule id="100260" level="5">
+    <if_sid>100258</if_sid>
+    <match>Application Control Detection Alert</match>
+    <description>$(action)</description>
+  </rule>
+
+
+
+<rule id="100261" level="5">
+  <if_sid>67001</if_sid>
+  <field name="win.eventdata.active">1</field>
+  <description>Port $(win.eventdata.localPorts) has been opened with ruleName: $(win.eventdata.ruleName)</description>
+</rule>
+
+<rule id="100262" level="5">
+  <if_sid>67001</if_sid>
+  <field name="win.eventdata.active">0</field>
+  <description>Port $(win.eventdata.localPorts) has been closed with ruleName: $(win.eventdata.ruleName)</description>
+</rule>
+
+<rule id="100263" level="6" >
+  <if_sid>100101</if_sid>
+  <field name="win.eventdata.modifyingApplication" type="pcre2">WmiPrvSE\.exe$</field>
+  <description>Alert: Port $(win.eventdata.localPorts) opened via PowerShell (ruleName: $(win.eventdata.ruleName))</description>
+</rule>
+
+<rule id="100264" level="6" >
+  <if_sid>100101</if_sid>
+  <field name="win.eventdata.modifyingApplication" type="pcre2">WmiPrvSE\.exe$</field>
+  <description>Alert: Port $(win.eventdata.localPorts) closed via PowerShell (ruleName: $(win.eventdata.ruleName))</description>
+</rule>
+
+
+  <rule id="100265" level="5">
+    <if_sid>61650</if_sid>
+    <field name="win.eventdata.queryName">drive.google.com</field>
+    <description>DNS logs</description>
+  </rule>
+</group>
+
+
+<!-- ============================= -->
+             <!-- END -->
+<!-- ============================= -->
+
+
+
