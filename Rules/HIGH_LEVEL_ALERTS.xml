@@ -1,0 +1,512 @@
+<!-- ============================= -->
+     <!-- Rule ID 100101 - 100200 -->
+<!-- ============================= -->
+
+
+
+<group name="High\_level\_alerts,">
+
+ 
+<rule id="100101" level="14">
+
+
+    <if_sid>60106</if_sid>
+
+    <if_matched_sid>100101</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <field name="win.eventdata.logonType">2|3|7|10</field>
+    <description>
+      Successful login detected after multiple failed logons. Possible brute force compromise.
+    </description>
+
+    <group>
+      brute_force,
+      authentication,
+      windows,
+    </group>
+
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+
+  </rule>
+ 
+  <rule id="100102" level="14">
+
+    <if_sid>5501</if_sid>
+
+    <if_matched_sid>5712</if_matched_sid>
+ 
+
+    <field name="win.eventdata.logonType">2|3|7|10</field>
+
+
+    <description>
+      Successful login detected after multiple failed logons. Possible brute force compromise.
+    </description>
+
+    <group>
+      brute_force,
+      authentication,
+      windows,
+    </group>
+
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+
+  </rule>
+
+
+                                                                     <!-- Multiple Failed Logins (Brute Force) -->
+
+  <rule id="100103" level="12" frequency="5" timeframe="300">
+    <if_matched_group>authentication_failed</if_matched_group>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>Multiple failed logins detected for the same user - possible brute force.</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+
+  </rule>
+
+<rule id="100104" level="12" frequency="8" timeframe="60">
+<if_matched_sid>60122</if_matched_sid>
+<description>Alert: possbile brute force attempt by $(win.eventdata.targetUserName) from IP: $(win.eventdata.ipAddress)</description>
+<mitre>
+<id>T1110</id>
+</mitre>
+</rule>
+ 
+                                                                                            <!-- Failed Logins → Successful Login -->
+ 
+  <rule id="100105" level="14">
+    <if_matched_sid timeframe="300">100103</if_matched_sid>
+    <if_matched_group>authentication_success</if_matched_group>
+
+    <same_field>win.eventdata.targetUserName</same_field>
+
+    <description>Successful login after multiple failed login attempts - Possible brute force success.</description>
+
+    <mitre>
+        <id>T1110</id>
+        <id>T1078</id>
+    </mitre>
+
+</rule>
+
+
+
+                                                                              <!-- Rule for file added to monitored directories -->
+  <rule id="100106" level="12">
+    <if_sid>554</if_sid>
+    <field name="file">\.exe$|\.dll$|\.bat$|\.ps1$|\.vbs$</field>
+    <description>File added to monitored directory with suspicious extension.</description>
+    <group>pci_dss_11.5,nist_800_53_SI.7,</group>
+  </rule>
+  <!-- Rule for VirusTotal detecting malicious file -->
+  <rule id="130201" level="12">
+    <if_sid>87105</if_sid>
+    <field name="virustotal.malicious">1</field>
+    <description>VirusTotal: Malicious file detected in monitored directory.</description>
+    <group>pci_dss_11.4,nist_800_53_SI.3,</group>
+  </rule>
+
+  												 <!-- Persistence attempt -->
+
+
+  <rule id="100107" level="12">
+    <if_sid>92041</if_sid>
+    <field name="win.system.eventID">1</field>
+    <field name="win.eventdata.image">.*\\reg\.exe</field>
+    <field name="win.eventdata.commandLine">(?i)HKCU\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run</field>
+    <description>Wazuh: Persistence attempt — reg.exe added/modified a value under HKCU\...\Run</description>
+  </rule>
+
+  												 <!-- file\_extraction -->
+
+
+
+<rule id="100108" level="12">
+<if_sid>60103</if_sid>
+<field name="win.system.eventID">^4663$</field>
+<field name="win.eventdata.objectName" type="pcre2">C:\\\\Windows\\\\Minidump\\\\[\s\S]+|C:\\\\Windows\\\\Minidump</field>
+<field name="win.eventdata.accessMask">^0x1$</field>
+<description>Alert: Attempt was made to access Crash dump at $(win.eventdata.objectName) </description>
+</rule>
+
+  												 <!-- Credential Dumping Detection -->
+
+
+  <!-- Rule for suspicious process creation (Event ID 4688) -->
+  <rule id="100109" level="12">
+    <if_sid>67027</if_sid> <!-- Wazuh rule for Event ID 4688 -->
+    <field name="win.eventdata.newProcessName">mimikatz.exe</field>
+    <description>Mimikatz process creation detected</description>
+    <mitre>
+      <id>T1003</id> <!-- MITRE ATT\&CK: OS Credential Dumping -->
+    </mitre>
+  </rule>
+
+  <rule id="100110" level="12">
+  <if_sid>60107</if_sid>
+  <field name="win.eventdata.processName" type="pcre2">\\\\mimikatz.exe</field>
+  <description>Possible memory dump detected</description>
+  </rule>
+
+ 
+  												 <!-- user account lockouts -->
+
+
+<rule id="100111" level="14" frequency="3" timeframe="300">
+    <if_matched_sid>60115</if_matched_sid>
+
+    <description>Multiple account lockouts detected within 5 minutes.</description>
+
+    <group>authentication,account_lockout,password_spraying,brute_force,</group>
+</rule>
+
+                                                                                                  <!-- PsExec service-creation -->
+
+
+
+  <rule id="100112" level="14">
+
+    <if_sid>92650</if_sid>
+
+    <field name="win.eventdata.serviceName" type="pcre2">(?i)^PSEXESVC$|^PAExec$|^RemComSvc$|^Winexesvc$</field>
+
+    <description>PsExec service created - Possible lateral movement.</description>
+
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+
+    <mitre>
+      <id>T1569.002</id>
+    </mitre>
+
+    <group>lateral_movement,psexec,service_creation,</group>
+
+  </rule>
+
+                                                                                                 <!-- LSASS memory access detected -->
+ 
+ 
+
+    <rule id="100113" level="14">
+
+        <field name="win.system.eventID">^10$</field>
+
+        <field name="win.eventdata.targetImage" type="pcre2">
+(?i)lsass\.exe
+        </field>
+
+        <description>Possible LSASS memory access detected.</description>
+
+        <mitre>
+            <id>T1003.001</id>
+        </mitre>
+
+        <group>credential_access,lsass,mimikatz,</group>
+
+    </rule>
+
+                                                                                                     <!-- Password Spraying -->
+ 
+ 
+  <rule id="100114" level="14" frequency="10" timeframe="300">
+   <if_matched_group>authentication_failed</if_matched_group>
+
+    <same_field>win.eventdata.sourceIp</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
+
+    <description>Password spraying detected (Windows - sourceIp).</description>
+
+    <mitre>
+        <id>T1110</id>
+    </mitre>
+
+  </rule>
+ 
+ 
+                                                                                                     <!-- Password Spraying -->
+ 
+ 
+  <rule id="100115" level="14" frequency="10" timeframe="300">
+    <if_matched_group>authentication_failed</if_matched_group>
+
+    <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
+
+    <description>Password spraying detected (Windows - ipAddress).</description>
+
+    <mitre>
+        <id>T1110</id>
+    </mitre>
+
+  </rule>
+ 
+ 
+                                                                                                    <!-- Password Spraying -->
+ 
+ 
+  <rule id="100116" level="14" frequency="10" timeframe="300">
+   <if_matched_group>authentication_failed</if_matched_group>
+
+    <same_field>srcip</same_field>
+    <different_field>dstuser</different_field>
+
+    <description>Password spraying detected (Linux SSH).</description>
+
+    <mitre>
+        <id>T1110</id>
+    </mitre>
+
+
+  </rule>
+                                                                                                    <!-- Password Spraying -->
+ 
+ 
+  <rule id="100117" level="14" frequency="10" timeframe="300">
+    <if_matched_group>authentication_failed</if_matched_group>
+
+    <same_field>src_ip</same_field>
+    <different_field>user</different_field>
+
+    <description>Password spraying detected (Generic src_ip).</description>
+
+    <mitre>
+        <id>T1110</id>
+    </mitre>
+
+ 
+  </rule>
+ 
+ 
+                                                                                          <!-- PowerShell Execution After Successful Login -->
+ 
+    <rule id="100118" level="12">
+
+    <if_matched_group timeframe="300">authentication_success</if_matched_group>
+
+    <field name="win.system.eventID">^4688$</field>
+
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)powershell\.exe$|pwsh\.exe$</field>
+
+    <same_field>win.eventdata.subjectUserName</same_field>
+
+    <description>PowerShell executed shortly after a successful login - Possible attacker activity.</description>
+
+    <mitre><id>T1078</id></mitre>
+
+
+  </rule>
+ 
+ 
+                                                                                                      <!-- privileged group -->
+
+<rule id="100119" level="12">
+
+    <if_matched_sid timeframe="300">92651</if_matched_sid>
+
+    <field name="win.system.eventID">^4732$|^4728$|^4756$</field>
+
+    <description>User added to a privileged group within 5 minutes of an RDP login.</description>
+
+    <mitre>
+        <id>T1078</id>
+    </mitre>
+
+    <mitre>
+        <id>T1098</id>
+    </mitre>
+
+    <group>authentication,rdp,privilege_escalation,persistence,</group>
+
+</rule>
+
+
+                                                                                                        <!-- password reset -->
+
+<rule id="100120" level="12">
+
+    <if_sid>60110</if_sid>
+
+    <field name="win.system.eventID">^4724$</field>
+
+    <description>User account password was reset.</description>
+ 
+    <mitre>
+        <id>T1098</id>
+    </mitre>
+
+    <group>authentication,password_reset,account_manipulation,</group>
+
+</rule>
+
+
+
+
+
+
+  <!--<rule id="67027" level="0">-->
+  <!--  <if\_sid>60103</if\_sid>-->
+  <!--  <field name="win.system.providerName">Microsoft-Windows-Security-Auditing</field>-->
+  <!--  <field name="win.system.eventID">4688</field>-->
+  <!--  <options>no\_full\_log</options>-->
+  <!--  <description>Windows: A process was created (suppressed, routine noise, see 100208 for elevated PowerShell alerts)</description>-->
+  <!--</rule>-->
+
+
+
+
+
+                                                                                                        <!-- Windows Defender rules -->
+ 
+ 
+
+
+<rule id="100121" level="12">
+<if_group>windows</if_group>
+<field name="win.system.eventID">^2082$</field>
+<field name="win.eventdata.settingValueString">^No$</field>
+<description>Windows Defender Firewall was DISABLED</description>
+<group>firewall_disabled,</group>
+</rule>
+
+
+<rule id="100122" level="5">
+<if_group>windows</if_group>
+<field name="win.system.eventID">^2082$</field>
+<field name="win.eventdata.settingValueString">^Yes$</field>
+<description>Windows Defender Firewall was ENABLED</description>
+<group>firewall_enabled,</group>
+</rule>
+
+
+
+
+
+ 
+
+                                                                                                     <!-- wmi -->
+
+
+
+  <rule id="100123" level="12">
+
+    <field name="win.system.channel">^Microsoft-Windows-WMI-Activity/Operational$</field>
+
+    <field name="win.system.eventID">^5857$|^5858$|^5859$|^5860$|^5861$</field>
+
+    <description>Windows Management Instrumentation (WMI) remote execution detected.</description>
+
+    <mitre>
+      <id>T1047</id>
+    </mitre>
+
+    <group>wmi,lateral_movement,execution,</group>
+
+  </rule>
+
+                                                                                                     
+ 
+ 
+ 
+<rule id="100124" level="14">
+
+    <if_matched_sid timeframe="300">100237</if_matched_sid>
+
+    <if_sid>100112</if_sid>
+
+    <same_field>agent.id</same_field>
+
+    <description>File copied to ADMIN$ followed by PsExec service creation. Possible lateral movement.</description>
+
+    <mitre>
+        <id>T1021.002</id>
+        <id>T1569.002</id>
+    </mitre>
+
+    <group>correlation,lateral_movement,psexec,</group>
+
+</rule>                                                                                                    
+                                                                                                   
+ 
+                                                                                                          <!-- PsExec\_RemoteLogin -->
+
+ 
+ 
+                                                                                                      
+<rule id="100125" level="14">
+
+    <if_matched_sid timeframe="300">100237</if_matched_sid>
+
+    <if_sid>92651</if_sid>
+
+    <same_field>agent.id</same_field>
+
+    <description>SMB Admin Share access, PsExec service creation and remote logon detected. High-confidence PsExec lateral movement.</description>
+
+    <mitre>
+        <id>T1021.002</id>
+        <id>T1569.002</id>
+    </mitre>
+
+    <group>correlation,lateral_movement,psexec,critical,</group>
+
+</rule>                                                                                                                                                                                                                 
+ 
+                                                                                                          <!-- Rundll32 executed -->
+
+
+    <rule id="100126" level="0">
+
+        <if_sid>60103</if_sid>
+
+        <field name="win.system.eventID">^4688$</field>
+
+        <field name="win.eventdata.newProcessName" type="pcre2">
+(?i)\\rundll32\.exe$
+        </field>
+
+        <description>Rundll32 executed.</description>
+
+        <mitre>
+            <id>T1218.011</id>
+        </mitre>
+
+        <group>execution,lolbin,rundll32,</group>
+
+    </rule>
+ 
+                                                                                                        <!-- Suspicious Rundll32 execution -->
+ 
+    <rule id="100127" level="12">
+
+        <if_sid>100126</if_sid>
+
+        <field name="win.eventdata.commandLine" type="pcre2">
+(?i)(temp|appdata|downloads|public|\\\\)
+        </field>
+
+        <description>Suspicious Rundll32 execution from a non-standard location.</description>
+
+        <mitre>
+            <id>T1218.011</id>
+        </mitre>
+
+        <group>execution,lolbin,rundll32,suspicious,</group>
+
+    </rule>
+
+
+</group>                                                                                                        
+ 
+ 
+ 
+ 
+ 
+ 
+ 
