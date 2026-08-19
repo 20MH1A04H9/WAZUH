@@ -1,0 +1,298 @@
+<!-- ============================= -->
+       <!--Rule ID 100201 - 100249-->
+<!-- ============================= -->
+
+
+
+
+<group name="Medium_level_alerts,">
+
+                                                                                                        <!-- windows policy changed -->
+
+<rule id="100201" level="10">
+
+    <if_sid>60103</if_sid>
+
+    <field name="win.system.eventID">^4719$</field>
+
+    <description>Windows audit policy changed.</description>
+
+    <mitre>
+        <id>T1562.002</id>
+    </mitre>
+
+    <group>defense_evasion,audit_policy,</group>
+
+</rule>
+
+                                                                                                          <!-- Powershell admin -->
+
+
+  <rule id="100202" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)powershell</field>
+    <field name="win.eventdata.tokenElevationType">^%%1937$</field>
+    <options>no_full_log</options>
+    <description>Windows: Elevated PowerShell launched (Run as Administrator) by $(win.eventdata.targetUserName) on $(win.system.computer)</description>
+  </rule>
+
+
+  <rule id="100203" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\cmd\.exe$</field>
+    <field name="win.eventdata.tokenElevationType">^%%1937$</field>
+    <options>no_full_log</options>
+    <description>Windows: Elevated Command Prompt launched (Run as Administrator) by $(win.eventdata.targetUserName) on $(win.system.computer)</description>
+  </rule>
+
+
+<rule id="100204" level="10">
+<if_sid>62154</if_sid>
+<field name="win.eventdata.old Value" type="pcre2">(?i)TamperProtection = 0x5</field>
+<field name="win.eventdata.new Value" type="pcre2">(?i)TamperProtection = 0x4</field>
+<options>no_full_log</options>
+<description>CRITICAL: Windows Defender Tamper Protection was DISABLED on $(win.system.computer)</description>
+</rule>
+
+
+
+
+                                                                                                    <!-- winrm -->
+                  
+
+  <rule id="100205" level="10">
+
+    <field name="win.system.channel">^Microsoft-Windows-Windows Remote Management/Operational$</field>
+
+    <field name="win.system.eventID">^91$|^142$|^169$</field>
+
+    <description>Windows Remote Management (WinRM) activity detected - Possible remote command execution.</description>
+
+    <mitre>
+      <id>T1021.006</id>
+    </mitre>
+
+  </rule>
+
+
+                                                                                                <!-- smb_admin_share -->                                                                                                
+                                                                                                        
+
+    <rule id="100206" level="10">
+
+        <if_sid>60103</if_sid>
+
+        <field name="win.system.eventID">^5140$</field>
+
+        <field name="win.eventdata.shareName" type="pcre2">
+(?i)\\\\\*\\(ADMIN\$|C\$|IPC\$)
+        </field>
+
+        <description>Administrative SMB share accessed.</description>
+
+        <mitre>
+            <id>T1021.002</id>
+        </mitre>
+
+        <group>lateral_movement,smb,</group>
+
+    </rule>
+    
+    
+        <rule id="100207" level="10">
+
+        <if_sid>60103</if_sid>
+
+        <field name="win.system.eventID">^5145$</field>
+
+        <field name="win.eventdata.shareName" type="pcre2">
+(?i)\\\\\*\\(ADMIN\$|C\$)
+        </field>
+
+        <description>File accessed through administrative SMB share.</description>
+
+        <mitre>
+            <id>T1021.002</id>
+        </mitre>
+
+        <group>lateral_movement,smb,</group>
+
+    </rule>
+
+  <!-- Rule to detect PowerShell launched with elevated token -->
+
+  <rule id="100208" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)powershell</field>
+    <field name="win.eventdata.tokenElevationType">^%%1937$</field>
+    <options>no_full_log</options>
+    <description>Windows: Elevated PowerShell launched (Run as Administrator) by $(win.eventdata.targetUserName) on $(win.system.computer)</description>
+  </rule>
+
+  <rule id="100209" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\cmd\.exe$</field>
+    <field name="win.eventdata.tokenElevationType">^%%1937$</field>
+    <options>no_full_log</options>
+    <description>Windows: Elevated Command Prompt launched (Run as Administrator) by $(win.eventdata.targetUserName) on $(win.system.computer)</description>
+  </rule>
+
+
+<rule id="100210" level="10" >
+<if_sid>553</if_sid>
+<description>file deleted</description>
+</rule>-->
+<rule id="100211" level="10" frequency="5" timeframe="15">
+<if_matched_sid>100210</if_matched_sid>
+<description>High Alert: excesive file deleted </description>
+</rule>
+
+
+
+  <rule id="100212" level="10">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.payload" type="pcre2">(?i)CommandInvocation</field>
+    <field name="win.system.message" type="pcre2">(?i)Add-Persistence|Find-AVSignature|Get-GPPAutologon|Get-GPPPassword|Get-HttpStatus|Get-Keystrokes|Get-SecurityPackages|Get-TimedScreenshot|Get-VaultCredential|Get-VolumeShadowCopy|Install-SSP|Invoke-CredentialInjection|Invoke-DllInjection|Invoke-Mimikatz|Invoke-NinjaCopy|Invoke-Portscan|Invoke-ReflectivePEInjection|Invoke-ReverseDnsLookup|Invoke-Shellcode|Invoke-TokenManipulation|Invoke-WmiCommand|Mount-VolumeShadowCopy|New-ElevatedPersistenceOption|New-UserPersistenceOption|New-VolumeShadowCopy|Out-CompressedDll|Out-EncodedCommand|Out-EncryptedScript|Out-Minidump|PowerUp|PowerView|Remove-Comments|Remove-VolumeShadowCopy|Set-CriticalProcess|Set-MasterBootRecord</field>
+    <description>Risky CMDLet executed. Possible malicious activity detected.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+<!-- <rule id="100213" level="10" >
+  <if_sid>67001</if_sid>
+  <list field="win.eventdata.localPorts" lookup="match_key">etc/lists/suspicious_ports</list>
+  <description>Alert: suspcious Port $(win.eventdata.localPorts) has been opened with ruleName: $(win.eventdata.ruleName)</description>
+  <group>suspicous_ports,</group>
+</rule> -->
+
+                                                                                                        <!-- windows account changes -->
+                                                                                                        
+
+<rule id="100214" level="7">
+<if_sid>60109</if_sid>
+<field name="win.system.eventID">^4720$</field>
+<options>no_full_log</options>
+<description>Local/domain account "$(win.eventdata.targetUserName)" was CREATED on $(win.system.computer) by $(win.eventdata.subjectUserName)</description>
+</rule>
+ 
+  <rule id="100215" level="8">
+<if_sid>60109</if_sid>
+<field name="win.system.eventID">^4722$</field>
+<options>no_full_log</options>
+<description>Account "$(win.eventdata.targetUserName)" was ENABLED  on $(win.system.computer) by $(win.eventdata.subjectUserName)</description>
+</rule>
+ 
+ 
+  <rule id="100216" level="8">
+<if_sid>60111</if_sid>
+<field name="win.system.eventID">^4726$</field>
+<description>Local account "$(win.eventdata.targetUserName)" was deleted on $(win.system.computer) by $(win.eventdata.subjectUserName)</description>
+</rule>
+ 
+  <rule id="100217" level="8">
+<if_sid>60111</if_sid>
+<field name="win.system.eventID">^4725$</field>
+<description>Local account "$(win.eventdata.targetUserName)" was disabled on $(win.system.computer) by $(win.eventdata.subjectUserName)</description>
+</rule>
+ 
+
+                                                                                                        <!-- Windows Defender rules -->
+
+<rule id="100218" level="8">
+<if_sid>62154</if_sid>
+<field name="win.eventdata.old Value" type="pcre2">(?i)SubmitSamplesConsent = 0x1</field>
+<field name="win.eventdata.new Value" type="pcre2">(?i)SubmitSamplesConsent = 0x0</field>
+<options>no_full_log</options>
+<description>Windows Defender: Automatic sample submission was turned OFF on $(win.system.computer)</description>
+</rule>
+  
+                                                                                                      <!-- task scheduler -->                                                              
+                                                                                                        
+
+  <rule id="100219" level="8">
+
+    <if_sid>60103</if_sid>
+
+    <field name="win.system.eventID">^4698$</field>
+
+    <description>New Windows Scheduled Task Created - Possible persistence.</description>
+
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+
+    <group>persistence,scheduled_task,</group>
+
+  </rule>
+
+                                                                                                          <!-- WMIC executed -->                                                                                                          
+                                                                                                        
+
+    <rule id="100220" level="8">
+
+        <if_sid>60103</if_sid>
+
+        <field name="win.system.eventID">^4688$</field>
+
+        <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\wmic\.exe$</field>
+        
+        <field name="win.eventdata.commandLine" type="pcre2">(?i)(process call create|/node:|create)</field>
+
+        <description>WMIC executed.</description>
+
+        <mitre>
+            <id>T1047</id>
+        </mitre>
+
+        <group>execution,wmic,</group>
+
+    </rule>
+                                                                                                          <!-- Suspicious Command Execution -->                                                                                                          
+                                                                                                        
+
+                                                                                                 
+    <rule id="100221" level="8">
+    <if_sid>60009</if_sid>
+    <field name="win.eventdata.payload" type="pcre2">(?i)CommandInvocation</field>
+    <field name="win.system.message" type="pcre2">(?i)EncodedCommand|FromBase64String|EncodedArguments|-e\b|-enco\b|-en\b</field>
+    <description>Encoded command executed via PowerShell.</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1562.001</id>
+    </mitre>
+  </rule>                                                                                                         
+            
+
+
+  <rule id="100222" level="8">
+    <if_sid>91802</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)mshta.*GetObject|mshta.*new ActiveXObject</field>
+    <description>Mshta used to download a file. Possible malicious activity detected.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+
+                                                                                                          <!-- USB Device Connection -->                                                                                                          
+                                                                                                        
+
+
+<rule id="100223" level="7">
+<if_sid>60227</if_sid>
+<field name="win.system.eventID">^6416$</field>
+<match>USBSTOR\\Disk</match>
+<options>no_full_log</options>
+<description>Windows: A USB device $(win.eventdata.deviceDescription) was connected to $(win.system.computer)</description>
+</rule>
+
+
+
+
+  <rule id="60154" level="10" overwrite="yes">
+    <description>Administrators Group Changed</description>
+  </rule>
+</group>                                                                                                        
+         
+                                                                                              
+           
