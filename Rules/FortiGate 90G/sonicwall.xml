@@ -1,0 +1,147 @@
+<!-- ============================= -->
+     <!-- Rule ID 110100 - 110150 -->
+<!-- ============================= -->
+
+
+<group name="firewall_traffic">
+
+<rule id="110100" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)from country blocked:</action>
+    <match>fw_action="drop"</match>
+    <description>SonicWall: Country blocked and traffic dropped</description>
+
+    <group>sonicwall,country_block,blocked,</group>
+</rule>
+
+<rule id="110101" level="10">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)from country blocked:</action>
+    <match>fw_action="allow"</match>
+    <description>SonicWall: Country blocked but traffic allowed</description>
+
+    <group>sonicwall,country_block,allowed,</group>
+</rule>
+
+<rule id="110102" level="10" frequency="10" timeframe="300" ignore="300">
+    <if_matched_sid>110100</if_matched_sid>
+    <same_srcip />
+    <description>SonicWall: Repeated country-blocked connections from same source IP</description>
+    <group>sonicwall,correlation,country_block,</group>
+</rule>
+
+<rule id="110103" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^Application Control Detection Alert:</action>
+    <description>SonicWall: Application Control detection - base</description>
+    <group>sonicwall,application_control,</group>
+</rule>
+
+<rule id="110104" level="5">
+    <if_sid>110103</if_sid>
+    <action type="pcre2">(?i)REMOTE-ACCESS (AnyDesk|UltraViewer)</action>
+    <description>SonicWall: Remote access application detected</description>
+    <group>sonicwall,application_control,remote_access,</group>
+</rule>
+
+<rule id="110105" level="5">
+    <if_sid>110103</if_sid>
+    <action type="pcre2">(?i)(VPN|PROXY-ACCESS)</action>
+    <description>SonicWall: VPN or proxy application detected</description>
+    <group>sonicwall,application_control,vpn_proxy,</group>
+</rule>
+
+<rule id="110106" level="5">
+    <if_sid>110103</if_sid>
+    <action type="pcre2">(?i)(P2P.*(eMule|File Transfer)|FILETYPE-DETECTION.*(P2P|File Transfer))</action>
+    <description>SonicWall: P2P or suspicious file transfer detected</description>
+    <group>sonicwall,application_control,p2p,file_transfer,</group>
+</rule>
+
+<rule id="110107" level="0">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^IPS Detection Alert: ICMP (PING|PING \*NIX|Echo Reply|Time-To-Live Exceeded in Transit)$</action>
+    <description>SonicWall: Suppress routine ICMP IPS detection</description>
+    <group>sonicwall,ips,icmp,suppressed,</group>
+</rule>
+
+<rule id="110108" level="5">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^IPS Detection Alert:.*Microsoft SQL Server.*sa Login Failed</action>
+    <description>SonicWall: Microsoft SQL Server SA login failure detected</description>
+    <group>sonicwall,ips,sql,authentication_failure,</group>
+</rule>
+
+<rule id="110109" level="10" frequency="10" timeframe="300" ignore="300">
+    <if_matched_sid>110108</if_matched_sid>
+    <same_srcip />
+    <same_dstip />
+    <description>SonicWall: Repeated SQL Server SA login failures from same source</description>
+    <group>sonicwall,correlation,sql,brute_force,authentication_failure,</group>
+</rule>
+
+<rule id="110110" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^Suspected Botnet initiator blocked:</action>
+    <match>fw_action="drop"</match>
+    <description>SonicWall: Suspected botnet connection blocked</description>
+    <group>sonicwall,ips,botnet,blocked,</group>
+</rule>
+
+<rule id="110111" level="12">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^Suspected Botnet initiator blocked:</action>
+    <match>fw_action="allow"</match>
+    <description>SonicWall: Suspected botnet traffic allowed</description>
+    <group>sonicwall,ips,botnet,allowed,critical,</group>
+</rule>
+
+<rule id="110112" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^Application Control Prevention Alert:</action>
+    <description>SonicWall: Application Control prevention event</description>
+    <group>sonicwall,application_control,prevention,</group>
+</rule>
+
+<rule id="110113" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^IPS Detection Alert: INFO Oversize ICMP Packet$</action>
+    <description>SonicWall: Oversize ICMP packet detected</description>
+    <group>sonicwall,ips,icmp,</group>
+</rule>
+
+
+<rule id="110114" level="0">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^IPS Detection Alert: INFO SSLv2\.0 Client Hello( 2)?$</action>
+    <description>SonicWall: Suppress routine SSLv2 Client Hello detection</description>
+    <group>sonicwall,ips,ssl,suppressed,</group>
+</rule>
+
+<rule id="110115" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)(Possible|Probable) port scan detected</action>
+    <match>Packet dropped</match>
+    <description>SonicWall: Port scan detected and packet dropped</description>
+    <group>sonicwall,ips,port_scan,blocked,</group>
+</rule>
+
+
+<rule id="110116" level="1">
+    <if_sid>4801</if_sid>
+    <action type="pcre2">(?i)^IPS Prevention Alert: WEB-ATTACKS</action>
+    <match>fw_action="drop"</match>
+    <description>SonicWall: Web attack detected and blocked</description>
+    <group>sonicwall,ips,prevention,web_attack,blocked,</group>
+</rule>
+
+
+  <rule id="100117" level="1">
+    <if_sid>4850</if_sid>
+    <match>fw_action="drop"</match>
+    <description>Suppress SonicWall dropped events</description>
+  </rule>
+
+
+
+</group>
